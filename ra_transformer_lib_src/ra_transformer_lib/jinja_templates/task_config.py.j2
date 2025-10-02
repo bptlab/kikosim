@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+"""Runtime task configuration for Resource-Agents (auto-generated).
+
+Contains task settings mapping reaction handlers to agent types and durations:
+• TASK_SETTINGS – reaction handler → (agent_type, duration) or (agent_type, mean, std_dev)
+
+Supported duration formats:
+• (agent_type, days) – Fixed duration in days (e.g., ('MarketRA', 1.5))
+• (agent_type, mean_days, std_dev_days) – Normal distribution (e.g., ('MarketRA', 1.5, 0.5))
+• (agent_type, "duration_string") – String format (e.g., ('MarketRA', "1.5d±0.5d"))
+
+Note: Duration values are in days (e.g., 1.0 = 1 day, 0.5 = 12 hours, 0.042 = 1 hour)
+Normal distribution follows rule: μ - 2σ ≥ 0 to prevent negative durations
+"""
+
+TASK_SETTINGS = {{ task_settings_repr }} 

@@ -1,0 +1,16 @@
+@adapter.reaction(CompleteTask)
+async def _ra__execute_pending(msg):
+    """Execute stored coroutine once ResourceAgent signals completion."""
+    try:
+        coro = pending.pop(msg["taskID"], None)
+        if coro:
+            await coro()
+    except Exception as e:
+        try:
+            task_id = msg["taskID"]
+        except (KeyError, TypeError):
+            task_id = 'unknown'
+        log.error(f"💥 ERROR executing pending task {task_id}: {e}")
+        import traceback
+        log.error(f"💥 Task execution traceback: {traceback.format_exc()}")
+        # Don't re-raise - log and continue

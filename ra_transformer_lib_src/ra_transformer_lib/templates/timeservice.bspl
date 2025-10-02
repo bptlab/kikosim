@@ -1,0 +1,10 @@
+TimeService {
+  roles TimeService, Agent
+  parameters out agentName, out now, out roundId key, out nextTime
+
+  // Self-messaging time coordination (round-based)
+  TimeService → Agent: TimeUpdate[out roundId key, out now]
+  Agent → Agent: Reminder[in roundId]
+  Agent → TimeService: Hold[in roundId, out agentName, out nextTime]
+  Agent → TimeService: Passivate[in roundId, out agentName]
+}

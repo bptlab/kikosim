@@ -1,0 +1,7 @@
+ResourceAgent {
+  roles Principal, Agent
+  parameters out taskID key, out duration, out id, out taskType
+
+  Principal → Agent: GiveTask[out taskID key, out duration, out id, out taskType]
+  Agent → Principal: CompleteTask[in taskID key, in id, in taskType]
+} 

@@ -1,0 +1,12 @@
+MarketSupplyChain {
+  roles Customer, Retailer, Supplier
+  parameters out id key, out productList, out orderID key, out product, out orderResponse, out marketResponse, out deliveryTime, out package
+
+  Customer → Retailer: MarketOrder[out id key, out productList]
+  Retailer → Customer: MarketOrderComplete[in id key, out marketResponse]
+  
+  Retailer → Supplier: Order[out orderID key, out id, out product]
+  Supplier → Retailer: Reject[in orderID key, in id, in product, out orderResponse]
+  Supplier → Retailer: Accept[in orderID key, in id, in product, out orderResponse, out deliveryTime]
+  Supplier → Retailer: ShipPackage[in orderID key, in id, in product, in orderResponse, in deliveryTime, out package]
+}

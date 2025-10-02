@@ -1,0 +1,13 @@
+TatSu
+simplejson
+ttictoc
+fire
+aiocron
+pyyaml
+ijson
+aiorun
+colorama
+agentspeak
+croniter
+uvloop
+redis

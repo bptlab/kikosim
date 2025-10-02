@@ -1,0 +1,43 @@
+"""
+KikoSim Backend - Constants
+
+Central location for all configuration constants and magic numbers.
+"""
+
+# Port Configuration
+DEFAULT_BUSINESS_PORT_START = 8000
+DEFAULT_RESOURCE_PORT_START = 9000
+PORT_SAFETY_BUFFER = 10
+MAX_PORT_NUMBER = 65535
+REDIS_PORT = 6379
+
+# Server Configuration
+BACKEND_PORT = 8080
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173", 
+    "http://localhost:8080"
+]
+
+# Redis Configuration
+REDIS_HOST = "localhost"
+REDIS_DB = 0
+REDIS_LOG_RETENTION_LIMIT = 9999  # Keep last 10000 entries (0-indexed)
+
+# Timing Configuration
+REDIS_STARTUP_DELAY_SECONDS = 2
+VIRTUAL_TIME_UPDATE_INTERVAL_SECONDS = 2
+ERROR_RETRY_DELAY_SECONDS = 5
+
+# Default Values
+DEFAULT_MAX_ROUNDS = 200
+DEFAULT_LOG_QUERY_LIMIT = 1000
+LARGE_LOG_QUERY_LIMIT = 5000
+
+# Date Configuration
+SIMULATION_START_YEAR = 2025
+SIMULATION_START_MONTH = 1
+SIMULATION_START_DAY = 1
+SIMULATION_START_HOUR = 9
+SIMULATION_START_MINUTE = 0
+SIMULATION_START_SECOND = 0

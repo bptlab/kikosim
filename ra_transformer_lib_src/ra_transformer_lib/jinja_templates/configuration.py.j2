@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+"""Auto-generated configuration for deferred Resource-Agent pattern (Idea 2) with TimeService."""
+
+import bspl
+
+# Load protocols
+{{ business_protocol_var }} = bspl.load_file("{{ business_protocol_file }}").export("{{ business_protocol_export }}")
+ra_spec = bspl.load_file("{{ ra_protocol_filename }}").export("ResourceAgent")
+timeservice_spec = bspl.load_file("timeservice.bspl").export("TimeService")
+
+from {{ business_protocol_export }} import {{ business_roles|join(', ') }}
+from ResourceAgent import Principal, Agent
+from TimeService import TimeService, Agent as TSAgent
+
+agents = {
+{{ agents_block }}
+    "TimeService": [("127.0.0.1", {{ timeservice_port }})],
+}
+
+systems = {
+{{ systems_block }}
+    # TimeService protocol (unified system for all time coordination)
+    {{ timeservice_system_id }}: {
+        "protocol": timeservice_spec,
+        "roles": {
+            TimeService: "TimeService",
+            TSAgent: {{ timeservice_agent_list }},
+        },
+    },
+}
+
+# Agent pools for destination passing (grouped by principal and agent type)
+agent_pools = {
+{{ agent_pools_block }}
+}

@@ -1,0 +1,171 @@
+# ═══════════════════════════════════════════════════════════════════
+# AUTO-GENERATED: TimeUpdate handler for initiator() function
+# ═══════════════════════════════════════════════════════════════════
+
+import random
+import asyncio
+
+# Import TimeService classes - ensure timeservice_spec is available
+try:
+    from configuration import timeservice_spec
+    TimeUpdate = timeservice_spec.module.TimeUpdate
+    Passivate = timeservice_spec.module.Passivate
+except ImportError:
+    # Fallback if timeservice_spec not imported yet
+    from configuration import systems, agents, timeservice_spec
+    TimeUpdate = timeservice_spec.module.TimeUpdate
+    Passivate = timeservice_spec.module.Passivate
+
+# Ensure set_virtual_time is available
+try:
+    from simple_logging import set_virtual_time
+except ImportError:
+    # Already imported, get from globals
+    pass
+
+# Virtual time coordination state
+current_virtual_time = 0.0
+first_time_update = True  # Ensure initiator runs on first round
+last_heartbeat_time = 0.0
+heartbeat_counter = 0
+
+@adapter.reaction(TimeUpdate)
+async def handle_time_update(msg):
+    """Handle TimeUpdate from TimeService and randomly call initiator."""
+    global current_virtual_time, last_heartbeat_time, heartbeat_counter
+    
+    try:
+        round_id = msg["roundId"]
+        virtual_time = msg["now"]
+        current_virtual_time = virtual_time
+        last_heartbeat_time = virtual_time
+        heartbeat_counter += 1
+        
+        # Update the global virtual time for logging
+        set_virtual_time(current_virtual_time)
+        
+        # Log time updates occasionally
+        if int(current_virtual_time) % 10 == 0 or current_virtual_time < 5:
+            log.info(f"🕐 Virtual time updated to day {current_virtual_time}")
+        
+        # Heartbeat every 20 rounds to prove agent is alive
+        if heartbeat_counter % 20 == 0:
+            log.info(f"❤️ {{ principal }} heartbeat: round {heartbeat_counter}, vt={virtual_time:.1f}")
+        
+        # Call initiator function directly (100% first round, then 30% chance)
+        if 'initiator' in globals() and callable(globals()['initiator']):
+            global first_time_update
+            
+            try:
+                # 100% probability on first update, then 30% chance
+                if first_time_update:
+                    probability = 1.0
+                    first_time_update = False
+                    log.info(f"🎯 Calling initiator() in round {round_id} (first round - guaranteed)")
+                    if asyncio.iscoroutinefunction(initiator):
+                        await initiator()
+                    else:
+                        initiator()
+                else:
+                    probability = 0.3
+                    if random.random() < probability:
+                        log.info(f"🎯 Calling initiator() in round {round_id} (30% chance)")
+                        if asyncio.iscoroutinefunction(initiator):
+                            await initiator()
+                        else:
+                            initiator()
+                    else:
+                        log.info(f"🎲 Skipping initiator() call for round {round_id} (random decision)")
+            except Exception as e:
+                log.error(f"💥 ERROR in initiator() call: {e}")
+                import traceback
+                log.error(f"💥 Traceback: {traceback.format_exc()}")
+                # Don't re-raise - continue with Passivate
+        
+        # Send Passivate to TimeService (agent is passive)
+        await send_passivate_to_timeservice(round_id)
+        
+    except Exception as e:
+        log.error(f"💥 CRITICAL ERROR in handle_time_update: {e}")
+        import traceback
+        log.error(f"💥 Traceback: {traceback.format_exc()}")
+        # Try to send Passivate anyway to not block TimeService
+        try:
+            await send_passivate_to_timeservice(round_id if 'round_id' in locals() else "unknown")
+        except:
+            log.error(f"💥 FAILED to send Passivate after error")
+    
+    return msg
+
+async def send_passivate_to_timeservice(round_id: str):
+    """Send Passivate to TimeService."""
+    try:
+        from configuration import agents
+        if "TimeService" in agents:
+            timeservice_endpoints = agents["TimeService"]
+            if isinstance(timeservice_endpoints, list):
+                timeservice_endpoint = timeservice_endpoints[0]
+            else:
+                timeservice_endpoint = timeservice_endpoints
+            
+            passivate_msg = Passivate(roundId=round_id, agentName="{{ principal }}")
+            passivate_msg.dest = timeservice_endpoint
+            
+            await adapter.send(passivate_msg)
+            
+            # Log passivate occasionally
+            if int(current_virtual_time) % 10 == 0 or current_virtual_time < 5:
+                log.info(f"📤 Sent Passivate to TimeService: round {round_id}")
+            
+            # Small delay to ensure message delivery
+            await asyncio.sleep(0.1)
+        else:
+            log.error("❌ Cannot find TimeService endpoint")
+    except Exception as e:
+        log.error(f"💥 CRITICAL ERROR sending Passivate: {e}")
+        import traceback
+        log.error(f"💥 Passivate error traceback: {traceback.format_exc()}")
+        # This is critical - if we can't send Passivate, TimeService will wait forever
+
+# Add global exception handler for unhandled exceptions
+import sys
+import threading
+
+def global_exception_handler(exc_type, exc_value, exc_traceback):
+    """Handle any unhandled exceptions."""
+    if issubclass(exc_type, KeyboardInterrupt):
+        # Allow KeyboardInterrupt to proceed normally
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+    
+    # Use log if available, otherwise print
+    try:
+        log.error(f"💥 UNHANDLED EXCEPTION in {{ principal }}: {exc_type.__name__}: {exc_value}")
+        import traceback
+        log.error(f"💥 Unhandled exception traceback: {''.join(traceback.format_tb(exc_traceback))}")
+    except NameError:
+        # log not defined yet, use print as fallback
+        print(f"💥 UNHANDLED EXCEPTION in {{ principal }}: {exc_type.__name__}: {exc_value}")
+        import traceback
+        print(f"💥 Unhandled exception traceback: {''.join(traceback.format_tb(exc_traceback))}")
+
+# Install global exception handler
+sys.excepthook = global_exception_handler
+
+# Also handle exceptions in asyncio tasks
+def asyncio_exception_handler(loop, context):
+    """Handle exceptions in asyncio tasks."""
+    exception = context.get('exception')
+    if exception:
+        log.error(f"💥 ASYNCIO EXCEPTION in {{ principal }}: {exception}")
+    else:
+        log.error(f"💥 ASYNCIO ERROR in {{ principal }}: {context}")
+
+# Install asyncio exception handler
+try:
+    import asyncio
+    loop = asyncio.get_event_loop()
+    loop.set_exception_handler(asyncio_exception_handler)
+except:
+    pass
+
