@@ -396,8 +396,16 @@ async def run_simulation_background(run_id: str, max_rounds: int = 200):
         if run["config"] and "AGENT_POOLS" in run["config"]:
             for principal, pools_list in run["config"]["AGENT_POOLS"].items():
                 for pool_dict in pools_list:
-                    for agent_type, count in pool_dict.items():
-                        resource_agent_count += count
+                    for agent_type, pool_spec in pool_dict.items():
+                        # Backward compatibility: pool_spec may be an int in older configs
+                        if isinstance(pool_spec, int):
+                            resource_agent_count += pool_spec
+                        elif isinstance(pool_spec, dict):
+                            # New format: {"count": int, "strategy": "round_robin"|"random"}
+                            resource_agent_count += int(pool_spec.get("count", 0))
+                        else:
+                            # Unknown format; ignore gracefully
+                            continue
         else:
             # Default: 1 resource agent per business agent
             resource_agent_count = business_agent_count

@@ -8,6 +8,7 @@ export default function ConfigurationModal({
 }) {
   const [step, setStep] = useState(1);
   const [agentPools, setAgentPools] = useState({});
+  const [agentStrategies, setAgentStrategies] = useState({}); // Track strategy per agent type
   const [taskSettings, setTaskSettings] = useState({});
   const [taskToAgentMapping, setTaskToAgentMapping] = useState({});
 
@@ -16,18 +17,26 @@ export default function ConfigurationModal({
     if (config && isOpen) {
       // Step 1: Keep AGENT_POOLS in count format (don't expand to individual agents)
       const pools = {};
+      const strategies = {};
       Object.entries(config.AGENT_POOLS || {}).forEach(
         ([principal, poolList]) => {
           const agentCounts = {};
+          const principalStrategies = {};
           poolList.forEach((poolObj) => {
-            Object.entries(poolObj).forEach(([agentType, count]) => {
+            Object.entries(poolObj).forEach(([agentType, value]) => {
+              // New format only: expect { count, strategy }
+              const count = (value && value.count) || 1;
+              const strategy = (value && value.strategy) || "round_robin";
               agentCounts[agentType] = count;
+              principalStrategies[agentType] = strategy;
             });
           });
           pools[principal] = agentCounts;
+          strategies[principal] = principalStrategies;
         }
       );
       setAgentPools(pools);
+      setAgentStrategies(strategies);
 
       // Step 2: Copy task settings
       setTaskSettings(config.TASK_SETTINGS || {});
@@ -251,13 +260,22 @@ export default function ConfigurationModal({
     Object.keys(agentPools).forEach((principal) => {
       const mainAgentType = `${principal}RA`;
       const agentCounts = agentPools[principal] || {};
+      const principalStrategies = agentStrategies[principal] || {};
 
       // Ensure the main agent type exists with at least count 1
       if (!agentCounts[mainAgentType]) {
         agentCounts[mainAgentType] = 1;
+        principalStrategies[mainAgentType] = "round_robin";
       }
 
-      backendPools[principal] = [agentCounts];
+      // Convert to new format with strategies
+      const agentPoolWithStrategies = {};
+      Object.entries(agentCounts).forEach(([agentType, count]) => {
+        const strategy = principalStrategies[agentType] || "round_robin";
+        agentPoolWithStrategies[agentType] = { count, strategy };
+      });
+
+      backendPools[principal] = [agentPoolWithStrategies];
     });
 
     return {
@@ -389,6 +407,13 @@ export default function ConfigurationModal({
                                 [cleanName]: 1,
                               },
                             }));
+                            setAgentStrategies((prev) => ({
+                              ...prev,
+                              [principal]: {
+                                ...prev[principal],
+                                [cleanName]: "round_robin",
+                              },
+                            }));
                           }
                         }}
                         className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
@@ -437,6 +462,31 @@ export default function ConfigurationModal({
                                   className="w-16 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
                                 />
 
+                                <label className="text-sm font-medium text-gray-700">
+                                  Strategy:
+                                </label>
+                                <select
+                                  value={
+                                    agentStrategies[principal]?.[agentType] ||
+                                    "round_robin"
+                                  }
+                                  onChange={(e) => {
+                                    setAgentStrategies((prev) => ({
+                                      ...prev,
+                                      [principal]: {
+                                        ...prev[principal],
+                                        [agentType]: e.target.value,
+                                      },
+                                    }));
+                                  }}
+                                  className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                >
+                                  <option value="round_robin">
+                                    Round Robin
+                                  </option>
+                                  <option value="random">Random</option>
+                                </select>
+
                                 {agentTypes.length > 1 && (
                                   <button
                                     onClick={() => {
@@ -447,6 +497,16 @@ export default function ConfigurationModal({
                                         };
                                         delete principalAgents[agentType];
                                         updated[principal] = principalAgents;
+                                        return updated;
+                                      });
+                                      setAgentStrategies((prev) => {
+                                        const updated = { ...prev };
+                                        const principalStrategies = {
+                                          ...updated[principal],
+                                        };
+                                        delete principalStrategies[agentType];
+                                        updated[principal] =
+                                          principalStrategies;
                                         return updated;
                                       });
                                     }}
@@ -509,6 +569,30 @@ export default function ConfigurationModal({
                                 }}
                                 className="w-16 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
                               />
+
+                              <label className="text-sm font-medium text-gray-700">
+                                Strategy:
+                              </label>
+                              <select
+                                value={
+                                  agentStrategies[principal]?.[
+                                    `${principal}RA`
+                                  ] || "round_robin"
+                                }
+                                onChange={(e) => {
+                                  setAgentStrategies((prev) => ({
+                                    ...prev,
+                                    [principal]: {
+                                      ...prev[principal],
+                                      [`${principal}RA`]: e.target.value,
+                                    },
+                                  }));
+                                }}
+                                className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                              >
+                                <option value="round_robin">Round Robin</option>
+                                <option value="random">Random</option>
+                              </select>
                             </div>
                           </div>
 

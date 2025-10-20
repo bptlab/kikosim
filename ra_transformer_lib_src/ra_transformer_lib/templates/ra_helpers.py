@@ -162,9 +162,10 @@ def create_resource_manager(
             """Return *send_task* bound to specific *id*."""
 
             async def send_task(task_id: str) -> None:
-                """Send *GiveTask* to an appropriate RA chosen by round-robin."""
-                # Import agent_pools from configuration for destination passing
-                from configuration import agent_pools, agents
+                """Send *GiveTask* to an appropriate RA chosen by strategy (round-robin or random)."""
+                # Import agent_pools and agent_strategies from configuration for destination passing
+                from configuration import agent_pools, agent_strategies, agents
+                import random
                 
                 # Get agent pool for this principal and agent type
                 if principal not in agent_pools:
@@ -172,11 +173,20 @@ def create_resource_manager(
                 if agent_type not in agent_pools[principal]:
                     raise RuntimeError(f"Agent type '{agent_type}' not found for principal '{principal}' in agent_pools")
                 
-                # Use round-robin to select specific agent from pool
-                cache_key = f"{principal}:{agent_type}"
-                if cache_key not in _agent_cycle_cache:
-                    _agent_cycle_cache[cache_key] = itertools.cycle(agent_pools[principal][agent_type])
-                selected_agent = next(_agent_cycle_cache[cache_key])
+                # Get strategy for this agent type (default to round_robin if not found)
+                strategy = agent_strategies.get((principal, agent_type), "round_robin")
+                
+                # Select agent based on strategy
+                if strategy == "random":
+                    # Use random selection
+                    available_agents = agent_pools[principal][agent_type]
+                    selected_agent = random.choice(available_agents)
+                else:
+                    # Use round-robin (default behavior)
+                    cache_key = f"{principal}:{agent_type}"
+                    if cache_key not in _agent_cycle_cache:
+                        _agent_cycle_cache[cache_key] = itertools.cycle(agent_pools[principal][agent_type])
+                    selected_agent = next(_agent_cycle_cache[cache_key])
                 
                 # Send with destination passing
                 give_task_msg = GiveTask(

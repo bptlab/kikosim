@@ -33,3 +33,10 @@ systems = {
 agent_pools = {
 {{ agent_pools_block }}
 }
+
+# Task assignment strategies per agent type
+agent_strategies = {
+{% for (principal, agent_type), strategy in agent_strategies.items() %}
+    ("{{ principal }}", "{{ agent_type }}"): "{{ strategy }}",
+{% endfor %}
+}

@@ -40,7 +40,7 @@ def create_default_config_dict(
     agent_pools_spec: Dict[str, List[dict]] = {}
     for principal in agent_capabilities:
         generic_name = f"{principal}RA"
-        agent_pools_spec[principal] = [{generic_name: 1}]
+        agent_pools_spec[principal] = [{generic_name: {"count": 1, "strategy": "round_robin"}}]
 
     # --- TASK_SETTINGS spec -------------------------------------------------
     task_settings_spec: Dict[str, tuple] = {}

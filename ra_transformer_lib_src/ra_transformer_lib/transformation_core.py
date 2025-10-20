@@ -155,29 +155,39 @@ def analyze_agents(agent_files: List[AgentFile]) -> List[Dict]:
 
 def allocate_system_ids(
     agent_pools_spec: Dict[str, List[dict]]
-) -> Dict[str, Dict[str, List[int]]]:
+) -> tuple[Dict[str, Dict[str, List[int]]], Dict[tuple[str, str], str]]:
     """
-    Allocate system IDs for resource pools.
+    Allocate system IDs for resource pools and extract strategies.
     
-    Returns: resource_pools
+    Returns: (resource_pools, agent_strategies)
     """
     resource_pools: Dict[str, Dict[str, List[int]]] = {}
+    agent_strategies: Dict[tuple[str, str], str] = {}
     system_counter = 1  # 0 is reserved for business-protocol system
 
     for principal, agent_list in agent_pools_spec.items():
         for agent_dict in agent_list:
-            for agent_type, count in agent_dict.items():
+            for agent_type, value in agent_dict.items():
+                # new format (count + strategy)
+                if isinstance(value, dict):
+                    count = value.get("count", 1)
+                    strategy = value.get("strategy", "round_robin")
+                else:
+                    raise ValueError(f"Invalid value type for {principal} {agent_type}: {type(value)}")
+                
                 pool = list(range(system_counter, system_counter + count))
                 system_counter += count
                 resource_pools.setdefault(principal, {})[agent_type] = pool
+                agent_strategies[(principal, agent_type)] = strategy
 
-    return resource_pools
+    return resource_pools, agent_strategies
 
 
 def generate_configuration_content(
     business_protocol_filename: str,
     business_protocol_export: str,
     resource_pools: Dict[str, Dict[str, List[int]]],
+    agent_strategies: Dict[tuple[str, str], str],
     override_principals: List[str] = None,
     business_base_port: int = 8000,
     resource_base_port: int = 9000
@@ -189,6 +199,7 @@ def generate_configuration_content(
         business_protocol_file=business_protocol_filename,
         business_protocol_export=business_protocol_export,
         resource_pools=resource_pools,
+        agent_strategies=agent_strategies,
         override_principals=override_principals,
         business_base_port=business_base_port,
         resource_base_port=resource_base_port
@@ -326,7 +337,7 @@ def transform_memory(input_data: TransformationInput) -> TransformationResult:
             task_settings_spec = input_data.config_overrides.get("TASK_SETTINGS", default_task_settings_spec)
         
         # 3. Allocate system IDs
-        resource_pools = allocate_system_ids(agent_pools_spec)
+        resource_pools, agent_strategies = allocate_system_ids(agent_pools_spec)
         
         # 4. Transform agents
         for info in agent_infos:
@@ -382,6 +393,7 @@ def transform_memory(input_data: TransformationInput) -> TransformationResult:
             input_data.bspl_filename,
             business_protocol_export,
             resource_pools,
+            agent_strategies,
             override_principals=principals_for_config,
             business_base_port=input_data.business_base_port,
             resource_base_port=input_data.resource_base_port

@@ -24,7 +24,7 @@ import jinja2
 from pathlib import Path
 
 def _render_configuration(
-    business_protocol_file: str, business_protocol_export: str, resource_pools: Dict[str, Dict[str, List[int]]], override_principals: List[str] = None, business_base_port: int = 8000, resource_base_port: int = 9000
+    business_protocol_file: str, business_protocol_export: str, resource_pools: Dict[str, Dict[str, List[int]]], agent_strategies: Dict[tuple[str, str], str], override_principals: List[str] = None, business_base_port: int = 8000, resource_base_port: int = 9000
 ) -> str:
     """
     Renders the `configuration.py` file content.
@@ -159,6 +159,7 @@ def _render_configuration(
         agents_block=agents_block,
         systems_block=systems_block,
         agent_pools_block=agent_pools_block,
+        agent_strategies=agent_strategies,
         business_roles=override_principals if override_principals else principals,
         timeservice_port=timeservice_port,
         timeservice_system_id=timeservice_system_id,
