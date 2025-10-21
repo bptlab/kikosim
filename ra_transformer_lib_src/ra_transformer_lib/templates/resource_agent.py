@@ -55,7 +55,7 @@ try:
 except Exception:
     _strategy = "round_robin"
 # for debugging purposes, you can see the selected strategy for each task in disco by uncommenting the next line
-# strategy_tag = "strat_rand" if _strategy == "random" else "strat_round" 
+# strategy_tag = "strat_rand" if _strategy == "random" else "strat_one" if _strategy == "one_per_case" else "strat_round"
 strategy_tag = ""
 
 # =================================================================

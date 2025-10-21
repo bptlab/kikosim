@@ -175,17 +175,25 @@ def create_resource_manager(
                 
                 # Get strategy for this agent type (default to round_robin if not found)
                 strategy = agent_strategies.get((principal, agent_type), "round_robin")
-                
+
                 # Select agent based on strategy
+                available_agents = agent_pools[principal][agent_type]
                 if strategy == "random":
                     # Use random selection
-                    available_agents = agent_pools[principal][agent_type]
                     selected_agent = random.choice(available_agents)
+                elif strategy == "one_per_case":
+                    # Deterministic selection based on the case/enactment id
+                    # Use stable hashing so the same id -> same agent mapping across runs/processes
+                    import hashlib
+                    key = f"{principal}|{agent_type}|{id}"
+                    digest = hashlib.sha256(key.encode("utf-8")).hexdigest()
+                    index = int(digest, 16) % len(available_agents)
+                    selected_agent = available_agents[index]
                 else:
                     # Use round-robin (default behavior)
                     cache_key = f"{principal}:{agent_type}"
                     if cache_key not in _agent_cycle_cache:
-                        _agent_cycle_cache[cache_key] = itertools.cycle(agent_pools[principal][agent_type])
+                        _agent_cycle_cache[cache_key] = itertools.cycle(available_agents)
                     selected_agent = next(_agent_cycle_cache[cache_key])
                 
                 # Send with destination passing
@@ -321,5 +329,3 @@ DURATION_PATTERNS = {
     "quick_task": "2h±30m",                    # Quick task: 2 hours ± 30 minutes
     "daily_task": "1d±4h",                     # Daily task: 1 day ± 4 hours
 }
-
-

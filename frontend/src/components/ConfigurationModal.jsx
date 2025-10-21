@@ -485,6 +485,7 @@ export default function ConfigurationModal({
                                     Round Robin
                                   </option>
                                   <option value="random">Random</option>
+                                  <option value="one_per_case">One Per Case</option>
                                 </select>
 
                                 {agentTypes.length > 1 && (
@@ -592,6 +593,7 @@ export default function ConfigurationModal({
                               >
                                 <option value="round_robin">Round Robin</option>
                                 <option value="random">Random</option>
+                                <option value="one_per_case">One Per Case</option>
                               </select>
                             </div>
                           </div>
