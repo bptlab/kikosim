@@ -17,19 +17,24 @@ Hold = timeservice_spec.module.Hold
 Passivate = timeservice_spec.module.Passivate
 TimeUpdate = timeservice_spec.module.TimeUpdate
 
-name = sys.argv[1] # e.g. "RetailerResourceAgent"
+name = sys.argv[1] # e.g. "RA_SupplierShipper_Supplier_1"
 adapter = Adapter(name, systems, agents)
 
 # Extract business agent name, agent type, and unique ID for distinct logging
 # From "RA_SupplierShipper_Supplier_1" extract "Supplier", "SupplierShipper", and "1" to create "supplier_suppliershipper_1"
 business_agent_name = "unknown"
 agent_type = "unknown"
+# Keep originals for strategy lookup in configuration
+principal_for_strategy = "Unknown"
+agent_type_for_strategy = "Unknown"
 unique_id = ""
 if "_" in name:
     parts = name.split("_")
     if len(parts) >= 2:
+        agent_type_for_strategy = parts[1]
         agent_type = parts[1].lower()  # Extract "SupplierShipper" -> "suppliershipper"
     if len(parts) >= 3:
+        principal_for_strategy = parts[2]
         business_agent_name = parts[2].lower()  # Extract "Supplier" -> "supplier"
     if len(parts) >= 4:
         unique_id = f"_{parts[3]}"  # Extract "1" -> "_1"
@@ -42,6 +47,16 @@ log = setup_logger(
     simulation_id=os.getenv("KIKOSIM_SIMULATION_ID"),
     run_id=os.getenv("KIKOSIM_RUN_ID")
 )
+
+# Determine assignment strategy tag for clearer task logs
+try:
+    from configuration import agent_strategies as _agent_strategies
+    _strategy = _agent_strategies.get((principal_for_strategy, agent_type_for_strategy), "round_robin")
+except Exception:
+    _strategy = "round_robin"
+# for debugging purposes, you can see the selected strategy for each task in disco by uncommenting the next line
+# strategy_tag = "strat_rand" if _strategy == "random" else "strat_one" if _strategy == "one_per_case" else "strat_round"
+strategy_tag = ""
 
 # =================================================================
 # STATE MANAGEMENT
@@ -86,7 +101,7 @@ async def handle_task(msg):
         }
         task_queue.append(task_info)
         
-        log.info(f"TASK_QUEUED {id_value}: [taskID={task_id}, taskType={task_type}, duration={duration:.1f}d, queue_pos={len(task_queue)}]")
+        log.info(f"TASK_QUEUED {id_value}: [taskID={task_id}, taskType={task_type}|{strategy_tag}, duration={duration:.1f}d, queue_pos={len(task_queue)}]")
         
         return msg
     except Exception as e:
@@ -123,7 +138,7 @@ async def complete_task(task_info):
             log.error(f"❌ Cannot find business agent '{principal_name}' in agents config")
             raise RuntimeError(f"Principal '{principal_name}' not found")
 
-        log.info(f"TASK_COMPLETED {task_info['id']}: [taskID={task_info['task_id']}, taskType={task_info['task_type']}]")
+        log.info(f"TASK_COMPLETED {task_info['id']}: [taskID={task_info['task_id']}, taskType={task_info['task_type']}|{strategy_tag}]")
         await adapter.send(complete_msg)
         
     except Exception as e:
@@ -230,7 +245,7 @@ async def handle_time_update(msg):
             'task_type': next_task['task_type']
         }
         
-        log.info(f"TASK_STARTED {current_task['id']}: [taskID={current_task['task_id']}, taskType={current_task['task_type']}, time=day {current_virtual_time}, completion=day {completion_time}]")
+        log.info(f"TASK_STARTED {current_task['id']}: [taskID={current_task['task_id']}, taskType={current_task['task_type']}|{strategy_tag}, time=day {current_virtual_time}, completion=day {completion_time}]")
         
         # Check if task completes immediately (shouldn't happen with positive durations)
         if completion_time <= current_virtual_time:

@@ -322,6 +322,22 @@ TASK_SETTINGS = {
 }
 ```
 
+### Assignment Strategies
+
+Control how tasks choose a ResourceAgent within each pool by providing a `strategy` in `AGENT_POOLS` (new format):
+
+```python
+AGENT_POOLS = {
+    "Retailer": [{"RetailerRA": {"count": 2, "strategy": "round_robin"}}],
+    "Supplier": [{"SupplierRA": {"count": 3, "strategy": "one_per_case"}}],
+}
+```
+
+Supported strategies:
+- `round_robin`: cycles through agents evenly (default)
+- `random`: picks an agent uniformly at random
+- `one_per_case`: same-resource-for-same-case-id (deterministic by case `id`)
+
 ## 🏗️ Architecture
 
 ```
