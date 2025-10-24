@@ -1,15 +1,15 @@
 OrderManagement {
-  roles B, S, L
+  roles Buyer, Seller, Logistics
   parameters out id key, out item, out outcome
   private price, payment_ref, rescind, delivery_req, delivery_date
 
-  B -> S: order        [out id key, out item]
-  S -> B: reject       [in id key, nil price, nil delivery_req, out outcome]
-  S -> B: invoice      [in id key, nil outcome, out price]
-  B -> S: pay          [in id key, nil outcome, in price, out payment_ref]
-  B -> S: cancel_req   [in id key, nil outcome, nil delivery_date, out rescind]
-  S -> B: cancel_ack   [in id key, in rescind, nil delivery_req, out outcome]
-  S -> L: delivery_req [in id key, in item, nil outcome, out delivery_req]
-  L -> B: deliver      [in id key, in item, in delivery_req, out delivery_date]
-  B -> S: confirm      [in id key, in payment_ref, in delivery_date, out outcome]
+  Buyer -> Seller: order        [out id key, out item]
+  Seller -> Buyer: reject       [in id key, nil price, nil delivery_req, out outcome]
+  Seller -> Buyer: invoice      [in id key, nil outcome, out price]
+  Buyer -> Seller: pay          [in id key, nil outcome, in price, out payment_ref]
+  Buyer -> Seller: cancel_req   [in id key, nil outcome, nil delivery_date, out rescind]
+  Seller -> Buyer: cancel_ack   [in id key, in rescind, nil delivery_req, out outcome]
+  Seller -> Logistics: delivery_req [in id key, in item, nil outcome, out delivery_req]
+  Logistics -> Buyer: deliver      [in id key, in item, in delivery_req, out delivery_date]
+  Buyer -> Seller: confirm      [in id key, in payment_ref, in delivery_date, out outcome]
 }
