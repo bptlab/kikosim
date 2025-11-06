@@ -1,14 +1,15 @@
 # ------------- Deferred Resource-Agent wiring (auto-generated) -------------
 from typing import Awaitable, Dict  # noqa: E402
 from ra_helpers import create_resource_manager  # noqa: E402
+from ra_helpers import new_task_id  # noqa: E402
 from ResourceAgent import GiveTask, CompleteTask  # noqa: E402
 
 PRINCIPAL = "{{ principal }}"
 
 pending: Dict[str, Awaitable] = {}
 
-create_task_sender_factory, deferred_reaction = create_resource_manager(
+create_task_sender_factory, deferred_reaction, deferred_send = create_resource_manager(
     adapter,
     pending,
     principal=PRINCIPAL,
-) 
+)

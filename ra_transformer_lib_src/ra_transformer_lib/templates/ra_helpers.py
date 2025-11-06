@@ -222,8 +222,18 @@ def create_resource_manager(
         """Create deferred reaction with automatic order ID extraction."""
         task_sender_factory = create_task_sender_factory(prefix)
         return mk_deferred(decorator, prefix, pending_tasks, task_sender_factory, None)
+
+    def deferred_send(prefix: str):
+        """Create deferred send decorator for plain functions (no adapter registration)."""
+        task_sender_factory = create_task_sender_factory(prefix)
+
+        def identity_register(f):
+            # No adapter registration; return the wrapper for direct calls
+            return f
+
+        return mk_deferred(identity_register, prefix, pending_tasks, task_sender_factory, None)
     
-    return create_task_sender_factory, deferred_reaction
+    return create_task_sender_factory, deferred_reaction, deferred_send
 
 
 # ──────────────────────────────────────────────  duration variance support
