@@ -20,6 +20,16 @@ from simple_logging import setup_logger
 log = setup_logger("buyer")
 adapter = Adapter("Buyer", systems, agents)
 
+# Deferred send wrappers (single-arg for RA deferral)
+async def send_order(message: order):
+    await adapter.send(message)
+
+async def send_pay(message: pay):
+    await adapter.send(message)
+
+async def send_confirm(message: confirm):
+    await adapter.send(message)
+
 
 def _find_payment_ref(oid: str) -> str | None:
     for m in adapter.history.messages(pay):
@@ -35,7 +45,7 @@ async def on_invoice(msg):
     price = msg["price"]
     pref = f"PAY_{uuid.uuid4().hex[:8]}"
     p = pay(id=oid, price=price, payment_ref=pref)
-    await adapter.send(p)
+    await send_pay(p)
     log.info(f"SENT pay: id={oid}, price={price}, payment_ref={pref}")
     return msg
 
@@ -47,7 +57,7 @@ async def on_deliver(msg):
     ddate = msg["delivery_date"]
     pref = _find_payment_ref(oid)
     c = confirm(id=oid, payment_ref=pref, delivery_date=ddate, outcome="DELIVERED")
-    await adapter.send(c)
+    await send_confirm(c)
     log.info(f"SENT confirm: id={oid}, payment_ref={pref}, delivery_date={ddate}, outcome=DELIVERED")
     return msg
 
@@ -75,7 +85,7 @@ async def initiator():
     oid = f"ORD_{uuid.uuid4().hex[:8]}"
     item = "widget"
     o = order(id=oid, item=item)
-    await adapter.send(o)
+    await send_order(o)
     log.info(f"SENT order: id={oid}, item={item}")
 
 

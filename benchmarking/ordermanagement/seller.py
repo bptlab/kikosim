@@ -19,6 +19,16 @@ from simple_logging import setup_logger
 log = setup_logger("seller")
 adapter = Adapter("Seller", systems, agents)
 
+# Deferred send wrappers (single-arg for RA deferral)
+async def send_invoice(message: invoice):
+    await adapter.send(message)
+
+async def send_delivery_req(message: delivery_req):
+    await adapter.send(message)
+
+async def send_cancel_ack(message: cancel_ack):
+    await adapter.send(message)
+
 
 @adapter.reaction(order)
 async def on_order(msg):
@@ -27,11 +37,11 @@ async def on_order(msg):
 
     # Simple policy: never reject; always invoice and request delivery
     inv = invoice(id=oid, price=100)
-    await adapter.send(inv)
+    await send_invoice(inv)
     log.info(f"SENT invoice: id={oid}, price=100")
 
     dreq = delivery_req(id=oid, item=item, delivery_req=f"DREQ_{oid}")
-    await adapter.send(dreq)
+    await send_delivery_req(dreq)
     log.info(f"SENT delivery_req: id={oid}, item={item}")
     return msg
 
@@ -49,7 +59,7 @@ async def on_cancel_req(msg):
     oid = msg["id"]
     rescind = msg["rescind"]
     ack = cancel_ack(id=oid, rescind=rescind, outcome="CANCELLED")
-    await adapter.send(ack)
+    await send_cancel_ack(ack)
     log.info(f"SENT cancel_ack: id={oid}, outcome=CANCELLED")
     return msg
 
