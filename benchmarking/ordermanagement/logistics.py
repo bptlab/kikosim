@@ -26,7 +26,6 @@ async def on_delivery_req(msg):
     item = msg["item"]
     dreq = msg["delivery_req"]
     ddate = datetime.utcnow().isoformat()
-
     d = deliver(id=oid, item=item, delivery_req=dreq, delivery_date=ddate)
     await send_deliver(d)
     log.info(f"SENT deliver: id={oid}, item={item}, delivery_date={ddate}")
