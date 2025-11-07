@@ -75,9 +75,10 @@ class _WrapReactions(ast.NodeTransformer):
         return self._transform_function(node)
     
     def _transform_function(self, node):
-        """Transform function decorators for both sync and async functions."""
+        """Transform function decorators and wrap wrap_* senders for deferral."""
+        # 1) Wrap @adapter.reaction(...) with deferred_reaction
         new_decs: List[ast.expr] = []
-        transformed = False
+        dec_transformed = False
         for dec in node.decorator_list:
             if (
                 isinstance(dec, ast.Call)
@@ -93,12 +94,27 @@ class _WrapReactions(ast.NodeTransformer):
                         keywords=[],
                     )
                 )
-                transformed = True
+                dec_transformed = True
             else:
                 new_decs.append(dec)
-        if transformed:
+        if dec_transformed:
             self.deferred.append(node.name)
             node.decorator_list = new_decs
+
+        # 2) Auto-decorate send_* functions (single-arg) with deferred_send('name')
+        is_send_named = isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("send_")
+        has_single_arg = bool(getattr(getattr(node, 'args', None), 'args', [])) and len(node.args.args) == 1
+        if is_send_named and has_single_arg:
+            # Add decorator call without altering function body
+            node.decorator_list.append(
+                ast.Call(
+                    func=ast.Name(id="deferred_send", ctx=ast.Load()),
+                    args=[ast.Constant(node.name)],
+                    keywords=[],
+                )
+            )
+            self.deferred.append(node.name)
+
         return node
 
     def visit_Assign(self, node: ast.Assign) -> ast.AST:
