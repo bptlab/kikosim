@@ -23,12 +23,39 @@ adapter = Adapter("Seller", systems, agents)
 # Deferred send wrappers (single-arg for RA deferral)
 async def send_invoice(message: invoice):
     await adapter.send(message)
+    try:
+        oid = message["id"]
+        price = message["price"]
+        log.info(f"SENT invoice: id={oid}, price={price}")
+    except Exception:
+        log.info("SENT invoice")
 
 async def send_delivery_req(message: delivery_req):
     await adapter.send(message)
+    try:
+        oid = message["id"]
+        item = message["item"]
+        log.info(f"SENT delivery_req: id={oid}, item={item}")
+    except Exception:
+        log.info("SENT delivery_req")
 
 async def send_cancel_ack(message: cancel_ack):
     await adapter.send(message)
+    try:
+        oid = message["id"]
+        outcome = message["outcome"]
+        log.info(f"SENT cancel_ack: id={oid}, outcome={outcome}")
+    except Exception:
+        log.info("SENT cancel_ack")
+
+async def send_reject(message: reject):
+    await adapter.send(message)
+    try:
+        oid = message["id"]
+        outcome = message["outcome"]
+        log.info(f"SENT reject: id={oid}, outcome={outcome}")
+    except Exception:
+        log.info("SENT reject")
 
 state: dict[str, dict] = {}
 
@@ -70,7 +97,6 @@ async def decide_next(oid: str):
     if s["cancel_req_received"] and not _delivery_req_emitted(oid):
         ack = cancel_ack(id=oid, rescind=s["rescind"], outcome="CANCELLED")
         await send_cancel_ack(ack)
-        log.info(f"SENT cancel_ack: id={oid}, outcome=CANCELLED")
         s["outcome"] = "CANCELLED"
         return
 
@@ -82,29 +108,24 @@ async def decide_next(oid: str):
             # Invoice now; delivery_req will be sent upon pay if still pending
             inv = invoice(id=oid, price=100)
             await send_invoice(inv)
-            log.info(f"SENT invoice: id={oid}, price=100")
             s["price_sent"] = True
             return
         elif r < 0.65:
             # Invoice then delivery_req (same decision call)
             inv = invoice(id=oid, price=100)
             await send_invoice(inv)
-            log.info(f"SENT invoice: id={oid}, price=100")
             s["price_sent"] = True
             dreq = delivery_req(id=oid, item=s["item"], delivery_req=f"DREQ_{oid}")
             await send_delivery_req(dreq)
-            log.info(f"SENT delivery_req: id={oid}, item={s['item']}")
             s["delivery_req_sent"] = True
             return
         else:
             # delivery_req then invoice (same decision call)
             dreq = delivery_req(id=oid, item=s["item"], delivery_req=f"DREQ_{oid}")
             await send_delivery_req(dreq)
-            log.info(f"SENT delivery_req: id={oid}, item={s['item']}")
             s["delivery_req_sent"] = True
             inv = invoice(id=oid, price=100)
             await send_invoice(inv)
-            log.info(f"SENT invoice: id={oid}, price=100")
             s["price_sent"] = True
             return
 
@@ -112,13 +133,11 @@ async def decide_next(oid: str):
     if not s["price_sent"]:
         inv = invoice(id=oid, price=100)
         await send_invoice(inv)
-        log.info(f"SENT invoice: id={oid}, price=100")
         s["price_sent"] = True
         return
     if not s["delivery_req_sent"] and s["item"] is not None:
         dreq = delivery_req(id=oid, item=s["item"], delivery_req=f"DREQ_{oid}")
         await send_delivery_req(dreq)
-        log.info(f"SENT delivery_req: id={oid}, item={s['item']}")
         s["delivery_req_sent"] = True
         return
 
@@ -132,8 +151,7 @@ async def on_order(msg):
     # Decide whether to reject outright or proceed
     if random.random() < 0.1:
         rej = reject(id=oid, outcome="REJECTED")
-        await adapter.send(rej)
-        log.info(f"SENT reject: id={oid}, outcome=REJECTED")
+        await send_reject(rej)
         s["outcome"] = "REJECTED"
         return msg
 
@@ -151,7 +169,6 @@ async def on_pay(msg):
     if (not s["delivery_req_sent"]) and (s["item"] is not None) and (not s["outcome"]):
         dreq = delivery_req(id=oid, item=s["item"], delivery_req=f"DREQ_{oid}")
         await send_delivery_req(dreq)
-        log.info(f"SENT delivery_req: id={oid}, item={s['item']}")
         s["delivery_req_sent"] = True
     log.info(f"RECEIVED pay: id={oid}, payment_ref={pref}")
     return msg

@@ -23,25 +23,42 @@ adapter = Adapter("Buyer", systems, agents)
 # Deferred send wrappers (single-arg for RA deferral)
 async def send_order(message: order):
     await adapter.send(message)
+    try:
+        oid = message["id"]
+        itm = message["item"]
+        log.info(f"SENT order: id={oid}, item={itm}")
+    except Exception:
+        log.info("SENT order")
 
 async def send_pay(message: pay):
     await adapter.send(message)
+    try:
+        oid = message["id"]
+        price = message["price"]
+        pref = message["payment_ref"]
+        log.info(f"SENT pay: id={oid}, price={price}, payment_ref={pref}")
+    except Exception:
+        log.info("SENT pay")
 
 async def send_confirm(message: confirm):
     await adapter.send(message)
+    try:
+        oid = message["id"]
+        pref = message["payment_ref"]
+        ddate = message["delivery_date"]
+        outcome = message["outcome"]
+        log.info(f"SENT confirm: id={oid}, payment_ref={pref}, delivery_date={ddate}, outcome={outcome}")
+    except Exception:
+        log.info("SENT confirm")
 
 async def send_cancel_req(message: cancel_req):
     await adapter.send(message)
     try:
         oid = message["id"]
-        resc = message.get("rescind", None) if hasattr(message, "get") else None
-    except Exception:
-        oid = "unknown"
-        resc = None
-    if resc is not None:
+        resc = message["rescind"]
         log.info(f"SENT cancel_req: id={oid}, rescind={resc}")
-    else:
-        log.info(f"SENT cancel_req: id={oid}")
+    except Exception:
+        log.info("SENT cancel_req")
 
 # ───────────────────────────────────────────────────────────────────
 # Simple state store and decision function (flexible behavior)
@@ -83,7 +100,6 @@ async def decide_next(oid: str):
     if s["payment_ref"] and s["delivery_date"] and not s["confirm_sent"] and not s["outcome"]:
         c = confirm(id=oid, payment_ref=s["payment_ref"], delivery_date=s["delivery_date"], outcome="DELIVERED")
         await send_confirm(c)
-        log.info(f"SENT confirm: id={oid}, payment_ref={s['payment_ref']}, delivery_date={s['delivery_date']}, outcome=DELIVERED")
         s["confirm_sent"] = True
         return
 
@@ -92,12 +108,10 @@ async def decide_next(oid: str):
         pref = f"PAY_{uuid.uuid4().hex[:8]}"
         p = pay(id=oid, price=s["price"], payment_ref=pref)
         await send_pay(p)
-        log.info(f"SENT pay: id={oid}, price={s['price']}, payment_ref={pref}")
         s["payment_ref"] = pref
         s["pay_sent"] = True
         c = confirm(id=oid, payment_ref=pref, delivery_date=s["delivery_date"], outcome="DELIVERED")
         await send_confirm(c)
-        log.info(f"SENT confirm: id={oid}, payment_ref={pref}, delivery_date={s['delivery_date']}, outcome=DELIVERED")
         s["confirm_sent"] = True
         return
 
@@ -109,14 +123,12 @@ async def decide_next(oid: str):
                 pref = f"PAY_{uuid.uuid4().hex[:8]}"
                 p = pay(id=oid, price=s["price"], payment_ref=pref)
                 await send_pay(p)
-                log.info(f"SENT pay: id={oid}, price={s['price']}, payment_ref={pref}")
                 s["payment_ref"] = pref
                 s["pay_sent"] = True
                 # If delivery already arrived, confirm right away
                 if s["delivery_date"] and not s["confirm_sent"]:
                     c = confirm(id=oid, payment_ref=pref, delivery_date=s["delivery_date"], outcome="DELIVERED")
                     await send_confirm(c)
-                    log.info(f"SENT confirm: id={oid}, payment_ref={pref}, delivery_date={s['delivery_date']}, outcome=DELIVERED")
                     s["confirm_sent"] = True
                 return
             else:
@@ -191,7 +203,6 @@ async def initiator():
     item = "widget"
     o = order(id=oid, item=item)
     await send_order(o)
-    log.info(f"SENT order: id={oid}, item={item}")
     # Decide upfront if this case should be pre-cancelled in a later round
     try:
         if random.random() < 0.2:
