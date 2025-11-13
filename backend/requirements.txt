@@ -5,6 +5,7 @@ pydantic==2.10.3
 haikunator
 redis>=5.0.0
 croniter
+pandas>=2.2.0
 
 # Optional: For environment variables
 python-dotenv==1.0.1

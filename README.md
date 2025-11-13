@@ -103,6 +103,29 @@ This repository contains complete evaluation materials including:
 
 **Reproducing results**: Navigate to `evaluation/evaluation_runs/` and follow the README instructions for each study. All outcome data, scripts, and configurations are preserved.
 
+### OrderManagement Sequence Analysis
+
+For the `benchmarking/ordermanagement` scenario, the backend can export compact, sequence-ready logs and a helper script can analyze path coverage:
+
+- Auto-export: After a run completes, the backend writes `backend/ordermanagement_sequences_latest.csv` with one row per sent business message: `id, step, code (e.g., B>S:order), message, agent, timestamp`.
+- Analyze: From repo root (venv active), run:
+
+```bash
+python backend/analyze_ordermanagement_sequences.py
+```
+
+The analyzer reports:
+- Earliest/latest virtual time and a half-time threshold
+- Coverage on terminal cases only (matched canonical sequences among the 34 you defined)
+- Count of non-terminal cases (in the filtered set)
+- Top matched canonical sequences (with counts)
+- Variant diversity on terminal cases:
+  - Distinct executed variants
+  - Distinct canonical variants matched
+  - Distinct non-canonical variants (also listed with counts)
+
+Tip: To surface more cancellation variants, increase durations for Seller `send_delivery_req` and Logistics `send_deliver` relative to Buyer `send_pay` in the UI configuration.
+
 ## Development
 
 ### Project Structure

@@ -462,6 +462,11 @@ async def run_simulation_background(run_id: str, max_rounds: int = 200):
                 simulation_result=simulation_result
             )
             print(f"✅ Run {run_id} completed in {execution_time:.2f}s")
+            # Auto-export simplified OrderManagement sequences CSV next to backend/main.py
+            try:
+                export_ordermanagement_sequences_csv(run_id)
+            except Exception as e:
+                print(f"⚠️ Failed to export OrderManagement sequences CSV: {e}")
             release_ports_for_run(run_id)
         else:
             error_message = "; ".join(simulation_result.errors) if simulation_result.errors else f"Simulation failed with exit code {simulation_result.exit_code}"
@@ -653,3 +658,91 @@ def export_run_logs_to_csv(run_id: str) -> str:
         writer.writerow([entry["enactment_id"], entry["activity_name"], entry["timestamp"], entry["agent_name"]])
 
     return output.getvalue()
+
+
+def export_ordermanagement_sequences_csv(run_id: str) -> Path:
+    """Export a simplified, ordermanagement-focused sequence CSV next to main.py.
+
+    Output columns:
+    - id: enactment id (case id)
+    - step: 0-based sequence index per case
+    - code: canonical label like "B>S:order"
+    - message: BSPL message type (order, invoice, deliver, ...)
+    - agent: emitting agent name from logs
+    - timestamp: log timestamp string
+    """
+    import csv
+    import io
+    import re
+    from pathlib import Path
+
+    csv_text = export_run_logs_to_csv(run_id)
+
+    # Map (agent, message) -> direction code prefix
+    direction_map = {
+        # Buyer sends to Seller
+        ("buyer", "order"): "B>S",
+        ("buyer", "pay"): "B>S",
+        ("buyer", "cancel_req"): "B>S",
+        ("buyer", "confirm"): "B>S",
+        # Seller sends to Buyer
+        ("seller", "reject"): "S>B",
+        ("seller", "invoice"): "S>B",
+        ("seller", "cancel_ack"): "S>B",
+        # Seller to Logistics
+        ("seller", "delivery_req"): "S>L",
+        # Logistics to Buyer
+        ("logistics", "deliver"): "L>B",
+    }
+
+    rows = []
+    reader = csv.DictReader(io.StringIO(csv_text))
+    for row in reader:
+        activity = row.get("activity_name", "")
+        timestamp = row.get("timestamp", "")
+        case_id = row.get("enactment_id", "")
+        # Look for pattern: "<agent_name>: Send <MessageType>"
+        m = re.match(r"\s*([^:]+):\s*Send\s+(\w+)", activity)
+        if not m:
+            continue
+        agent = m.group(1).strip()
+        message = m.group(2).strip()
+        agent_key = agent.lower()
+        code_prefix = direction_map.get((agent_key, message))
+        if not code_prefix:
+            continue
+        code = f"{code_prefix}:{message}"
+        rows.append({
+            "id": case_id,
+            "message": message,
+            "agent": agent_key.capitalize(),
+            "timestamp": timestamp,
+            "code": code,
+        })
+
+    # Order by timestamp as already sorted in upstream exporter
+    # Compute step index per id
+    steps = []
+    from collections import defaultdict
+    counter = defaultdict(int)
+    for r in rows:
+        i = counter[r["id"]]
+        steps.append({
+            "id": r["id"],
+            "step": i,
+            "code": r["code"],
+            "message": r["message"],
+            "agent": r["agent"],
+            "timestamp": r["timestamp"],
+        })
+        counter[r["id"]] += 1
+
+    out_path = Path(__file__).parent / "ordermanagement_sequences_latest.csv"
+    with out_path.open("w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=["id", "step", "code", "message", "agent", "timestamp"])
+        w.writeheader()
+        for s in steps:
+            w.writerow(s)
+
+    print(f"📄 Wrote OrderManagement sequence CSV: {out_path}")
+    return out_path

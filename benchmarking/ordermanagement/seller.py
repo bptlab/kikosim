@@ -30,7 +30,6 @@ async def send_delivery_req(message: delivery_req):
 async def send_cancel_ack(message: cancel_ack):
     await adapter.send(message)
 
-// Simple state store and decision function
 state: dict[str, dict] = {}
 
 def _st(oid: str) -> dict:
@@ -43,6 +42,16 @@ def _st(oid: str) -> dict:
         "rescind": None,
     })
     return s
+
+def _delivery_req_emitted(oid: str) -> bool:
+    """Check adapter history for an emitted delivery_req with this id."""
+    try:
+        for m in adapter.history.messages(delivery_req):
+            if m["id"] == oid:
+                return True
+    except Exception:
+        pass
+    return False
 
 async def decide_next(oid: str):
     """
@@ -58,24 +67,58 @@ async def decide_next(oid: str):
     if s["outcome"]:
         return
     # Deterministic: if cancellation is possible, honor it (only consistent option to close case)
-    if s["cancel_req_received"] and not s["delivery_req_sent"]:
+    if s["cancel_req_received"] and not _delivery_req_emitted(oid):
         ack = cancel_ack(id=oid, rescind=s["rescind"], outcome="CANCELLED")
         await send_cancel_ack(ack)
-        adapter.info(f"SENT cancel_ack: id={oid}, outcome=CANCELLED")
+        log.info(f"SENT cancel_ack: id={oid}, outcome=CANCELLED")
         s["outcome"] = "CANCELLED"
         return
 
     # Otherwise, consider sending invoice and/or delivery_req; both keep outcome unset
+    # When both are pending, sometimes send only invoice now (delivery_req later on pay)
+    if (not s["price_sent"]) and (not s["delivery_req_sent"]) and s["item"] is not None:
+        r = random.random()
+        if r < 0.3:
+            # Invoice now; delivery_req will be sent upon pay if still pending
+            inv = invoice(id=oid, price=100)
+            await send_invoice(inv)
+            log.info(f"SENT invoice: id={oid}, price=100")
+            s["price_sent"] = True
+            return
+        elif r < 0.65:
+            # Invoice then delivery_req (same decision call)
+            inv = invoice(id=oid, price=100)
+            await send_invoice(inv)
+            log.info(f"SENT invoice: id={oid}, price=100")
+            s["price_sent"] = True
+            dreq = delivery_req(id=oid, item=s["item"], delivery_req=f"DREQ_{oid}")
+            await send_delivery_req(dreq)
+            log.info(f"SENT delivery_req: id={oid}, item={s['item']}")
+            s["delivery_req_sent"] = True
+            return
+        else:
+            # delivery_req then invoice (same decision call)
+            dreq = delivery_req(id=oid, item=s["item"], delivery_req=f"DREQ_{oid}")
+            await send_delivery_req(dreq)
+            log.info(f"SENT delivery_req: id={oid}, item={s['item']}")
+            s["delivery_req_sent"] = True
+            inv = invoice(id=oid, price=100)
+            await send_invoice(inv)
+            log.info(f"SENT invoice: id={oid}, price=100")
+            s["price_sent"] = True
+            return
+
+    # If only one of them is pending, send the missing one
     if not s["price_sent"]:
         inv = invoice(id=oid, price=100)
         await send_invoice(inv)
-        adapter.info(f"SENT invoice: id={oid}, price=100")
+        log.info(f"SENT invoice: id={oid}, price=100")
         s["price_sent"] = True
-        # fallthrough to maybe also send delivery_req this cycle
+        return
     if not s["delivery_req_sent"] and s["item"] is not None:
         dreq = delivery_req(id=oid, item=s["item"], delivery_req=f"DREQ_{oid}")
         await send_delivery_req(dreq)
-        adapter.info(f"SENT delivery_req: id={oid}, item={s['item']}")
+        log.info(f"SENT delivery_req: id={oid}, item={s['item']}")
         s["delivery_req_sent"] = True
         return
 
@@ -103,6 +146,13 @@ async def on_order(msg):
 async def on_pay(msg):
     oid = msg["id"]
     pref = msg["payment_ref"]
+    # If invoice-only path was taken earlier, send delivery_req now to progress
+    s = _st(oid)
+    if (not s["delivery_req_sent"]) and (s["item"] is not None) and (not s["outcome"]):
+        dreq = delivery_req(id=oid, item=s["item"], delivery_req=f"DREQ_{oid}")
+        await send_delivery_req(dreq)
+        log.info(f"SENT delivery_req: id={oid}, item={s['item']}")
+        s["delivery_req_sent"] = True
     log.info(f"RECEIVED pay: id={oid}, payment_ref={pref}")
     return msg
 

@@ -59,7 +59,8 @@ from services import (
     create_simulation_id, create_run_id, get_simulation, get_run,
     get_runs_for_simulation, notify_clients, update_run_status,
     get_virtual_time_status, broadcast_virtual_time_updates,
-    run_simulation_background, start_redis_server, export_run_logs_to_csv
+    run_simulation_background, start_redis_server, export_run_logs_to_csv,
+    export_ordermanagement_sequences_csv,
 )
 
 
@@ -794,6 +795,17 @@ async def export_run_csv(run_id: str):
             media_type="text/csv",
             headers={"Content-Disposition": f"attachment; filename=run_{run_id}_business_protocol.csv"}
         )
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/runs/{run_id}/export/ordermanagement_sequences")
+async def export_ordermanagement_sequences(run_id: str):
+    """Write a simplified OrderManagement sequence CSV next to main.py."""
+    try:
+        path = export_ordermanagement_sequences_csv(run_id)
+        return {"status": "ok", "path": str(path)}
     except HTTPException as e:
         raise e
     except Exception as e:
