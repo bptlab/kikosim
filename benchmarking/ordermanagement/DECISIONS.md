@@ -1,13 +1,11 @@
 # OrderManagement – Decision Logic (current)
 
-This scenario demonstrates flexible agent behavior within BSPL constraints while keeping the code simple and RA‑compatible.
-
 Buyer (buyer.py)
 
 - State per id: price, payment_ref, delivery_date, outcome, and flags (invoice_received, pay_sent, cancel_sent, pre_cancel, delivery_received, confirm_sent).
-- Initiator behavior: after sending order, may mark the case for pre‑cancel (≈20%). Pre‑cancels are dispatched via a RA‑deferred send (send_cancel_req) in a later initiator call when safe (not delivered, no outcome).
+- Initiator behavior: after sending order, may mark the case for pre‑cancel (≈20%). Pre‑cancels are dispatched via a RA‑deferred send (send_cancel_req) in later initiator calls when safe (not delivered, no outcome).
 - Decision tree (on reactions):
-  - If cancellation was requested (cancel_sent) or outcome set → do nothing further (no pay/confirm after cancel).
+  - If a cancellation was requested (cancel_sent) or outcome is set → do nothing further (no pay/confirm after cancel).
   - If payment_ref and delivery_date exist and no outcome → send confirm (deterministic).
   - If delivery_date exists, price is known, and pay not sent → send pay then confirm (fallback to ensure progress).
   - If invoice (price) is known, no outcome, and no prior cancel → usually pay (70%); else (30%) send cancel_req (RA‑deferred) if not delivered yet.
@@ -33,16 +31,6 @@ Logistics (logistics.py)
 
 - Sends deliver immediately on delivery_req (no randomness).
 
-Deferred sends
+Notes
 
-- All outbound messages are wrapped in single‑arg `send_*` functions and are automatically delayed by ResourceAgents; durations/strategies configurable in UI.
-
-Progress guarantees
-
-- Buyer fallback ensures cases finish even if delivery arrives before pay.
-- Seller deterministically acknowledges cancellation only if consistent (before delivery_req emits), otherwise proceeds to fulfillment per policy.
-
-Notes / future options
-
-- Tune policy weights or cancel probabilities to bias towards certain variants.
-- Add a time‑triggered wait to support "cancel after pay + cancel_ack" without stalling (would require a tiny initiator or RA timer).
+- Tune randomization weights or durations to bias variants.
