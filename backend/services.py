@@ -462,6 +462,11 @@ async def run_simulation_background(run_id: str, max_rounds: int = 200):
                 simulation_result=simulation_result
             )
             print(f"✅ Run {run_id} completed in {execution_time:.2f}s")
+            # Auto-export simplified OrderManagement sequences CSV next to backend/main.py
+            try:
+                export_ordermanagement_sequences_csv(run_id)
+            except Exception as e:
+                print(f"⚠️ Failed to export OrderManagement sequences CSV: {e}")
             release_ports_for_run(run_id)
         else:
             error_message = "; ".join(simulation_result.errors) if simulation_result.errors else f"Simulation failed with exit code {simulation_result.exit_code}"
@@ -609,15 +614,26 @@ def export_run_logs_to_csv(run_id: str) -> str:
 
                 # SIMPLIFIED: Two keyword-based patterns for business log extraction
                 
-                # Pattern 1: Business Protocol Messages - "SENT MessageType: id=X, ..."
-                sent_match = re.search(r'SENT\s+(\w+):\s*(.+)', message)
-                if sent_match:
-                    message_type = sent_match.group(1)
-                    properties_text = sent_match.group(2)
-                    # Extract case_id from properties (look for id=...)
-                    case_id_match = re.search(r'id=([^,\s]+)', properties_text)
-                    case_id = case_id_match.group(1) if case_id_match else "unknown"
+                # Pattern 1: Business Protocol Messages
+                # Accepts:
+                #   a) "SENT MessageType" (minimal)
+                #   b) "SENT MessageType: ..." (rich with properties)
+                sent_bare = re.search(r'^\s*SENT\s+(\w+)\s*$', message)
+                if sent_bare:
+                    message_type = sent_bare.group(1)
                     activity_name = f"{agent_name}: Send {message_type}"
+                    # case_id may be inferred later for OrderManagement sequence export
+                    case_id = case_id or ""
+                else:
+                    sent_with = re.search(r'^\s*SENT\s+(\w+):\s*(.+)$', message)
+                    if sent_with:
+                        message_type = sent_with.group(1)
+                        props_text = sent_with.group(2)
+                        # Try to pull id=... if present; otherwise leave blank (infer later)
+                        cid_match = re.search(r'\bid\s*=\s*([^,\s]+)', props_text)
+                        if cid_match:
+                            case_id = cid_match.group(1)
+                        activity_name = f"{agent_name}: Send {message_type}"
                 
                 # Pattern 2: Resource Task Events - "TASK_QUEUED case_id: [taskID=X, taskType=Y, ...]"
                 task_match = re.search(r'TASK_(QUEUED|STARTED|COMPLETED)\s+([^:]+):\s*\[(.+)\]', message)
@@ -628,6 +644,7 @@ def export_run_logs_to_csv(run_id: str) -> str:
                     # Extract taskType from properties
                     task_type_match = re.search(r'taskType=([^,\]]+)', properties_text)
                     task_type = task_type_match.group(1) if task_type_match else ""
+                    task_type = task_type.rstrip('|').strip()
                     activity_name = f"{agent_name}: {task_action} Task ({task_type})" if task_type else f"{agent_name}: {task_action} Task"
 
                 if case_id and activity_name:
@@ -653,3 +670,112 @@ def export_run_logs_to_csv(run_id: str) -> str:
         writer.writerow([entry["enactment_id"], entry["activity_name"], entry["timestamp"], entry["agent_name"]])
 
     return output.getvalue()
+
+
+def export_ordermanagement_sequences_csv(run_id: str) -> Path:
+    """Export a simplified, ordermanagement-focused sequence CSV next to main.py.
+
+    Output columns:
+    - id: enactment id (case id)
+    - step: 0-based sequence index per case
+    - code: canonical label like "B>S:order"
+    - message: BSPL message type (order, invoice, deliver, ...)
+    - agent: emitting agent name from logs
+    - timestamp: log timestamp string
+    """
+    import csv
+    import io
+    import re
+    from pathlib import Path
+
+    csv_text = export_run_logs_to_csv(run_id)
+
+    # Map (agent, message) -> direction code prefix
+    direction_map = {
+        # Buyer sends to Seller
+        ("buyer", "order"): "B>S",
+        ("buyer", "pay"): "B>S",
+        ("buyer", "cancel_req"): "B>S",
+        ("buyer", "confirm"): "B>S",
+        # Seller sends to Buyer
+        ("seller", "reject"): "S>B",
+        ("seller", "invoice"): "S>B",
+        ("seller", "cancel_ack"): "S>B",
+        # Seller to Logistics
+        ("seller", "delivery_req"): "S>L",
+        # Logistics to Buyer
+        ("logistics", "deliver"): "L>B",
+    }
+
+    rows = []
+    # Maintain mapping from (agent, taskType) -> last case_id observed via task events
+    last_case_for_task: dict[tuple[str, str], str] = {}
+    reader = csv.DictReader(io.StringIO(csv_text))
+    for row in reader:
+        activity = row.get("activity_name", "")
+        timestamp = row.get("timestamp", "")
+        case_id = row.get("enactment_id", "")
+        # Look for pattern: "<agent_name>: Send <MessageType>"
+        m = re.match(r"\s*([^:]+):\s*Send\s+(\w+)$", activity)
+        if m:
+            agent = m.group(1).strip()
+            message = m.group(2).strip()
+            agent_key = agent.lower()
+            code_prefix = direction_map.get((agent_key, message))
+            if not code_prefix:
+                continue
+            # Try to infer case_id from the latest TASK_COMPLETED for this (agent, send_*) pair
+            inferred_id = last_case_for_task.get((agent_key, f"send_{message.lower()}"))
+            cid = inferred_id if inferred_id else (case_id or "unknown")
+            code = f"{code_prefix}:{message}"
+            rows.append({
+                "id": cid,
+                "message": message,
+                "agent": agent_key.capitalize(),
+                "timestamp": timestamp,
+                "code": code,
+            })
+            continue
+        # Track task events to infer case ids for subsequent sends
+        t = re.match(r"\s*([^:]+):\s*(Queued|Started|Completed) Task(?: \(([^)]+)\))?", activity)
+        if t:
+            agent = t.group(1).strip()
+            phase = t.group(2)
+            task_type = (t.group(3) or "").strip()
+            task_type = task_type.rstrip('|').strip()
+            if phase.lower() == "completed" and task_type:
+                # Normalize agent to business principal (strip resource suffixes)
+                agent_norm = agent.lower()
+                if '::' in agent_norm:
+                    agent_norm = agent_norm.split('::', 1)[0]
+                if '_resource' in agent_norm:
+                    agent_norm = agent_norm.split('_resource', 1)[0]
+                last_case_for_task[(agent_norm, task_type)] = case_id
+        # ignore other activities
+
+    # Order by timestamp as already sorted in upstream exporter
+    # Compute step index per id
+    steps = []
+    from collections import defaultdict
+    counter = defaultdict(int)
+    for r in rows:
+        i = counter[r["id"]]
+        steps.append({
+            "id": r["id"],
+            "step": i,
+            "code": r["code"],
+            "message": r["message"],
+            "agent": r["agent"],
+            "timestamp": r["timestamp"],
+        })
+        counter[r["id"]] += 1
+
+    out_path = Path(__file__).parent / "ordermanagement_sequences_latest.csv"
+    with out_path.open("w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=["id", "step", "code", "message", "agent", "timestamp"])
+        w.writeheader()
+        for s in steps:
+            w.writerow(s)
+
+    print(f"📄 Wrote OrderManagement sequence CSV: {out_path}")
+    return out_path
