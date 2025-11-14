@@ -101,7 +101,13 @@ async def handle_task(msg):
         }
         task_queue.append(task_info)
         
-        log.info(f"TASK_QUEUED {id_value}: [taskID={task_id}, taskType={task_type}|{strategy_tag}, duration={duration:.1f}d, queue_pos={len(task_queue)}]")
+        # Log differently based on whether we're currently busy or idle
+        if current_task is None:
+            # Idle now; mark as TASK_RECEIVED for exporters to treat alongside TASK_QUEUED
+            log.info(f"TASK_RECEIVED {id_value}: [taskID={task_id}, taskType={task_type}|{strategy_tag}, duration={duration:.1f}d, queue_pos={len(task_queue)}]")
+        else:
+            # Busy; explicitly note that the task is queued behind ongoing work
+            log.info(f"TASK_QUEUED {id_value}: [taskID={task_id}, taskType={task_type}|{strategy_tag}, duration={duration:.1f}d, queue_pos={len(task_queue)}]")
         
         return msg
     except Exception as e:
