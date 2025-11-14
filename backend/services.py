@@ -635,10 +635,11 @@ def export_run_logs_to_csv(run_id: str) -> str:
                             case_id = cid_match.group(1)
                         activity_name = f"{agent_name}: Send {message_type}"
                 
-                # Pattern 2: Resource Task Events - "TASK_QUEUED case_id: [taskID=X, taskType=Y, ...]"
-                task_match = re.search(r'TASK_(QUEUED|STARTED|COMPLETED)\s+([^:]+):\s*\[(.+)\]', message)
+                # Pattern 2: Resource Task Events - "TASK_<PHASE> case_id: [taskID=X, taskType=Y, ...]"
+                # Supports: QUEUED, RECEIVED, STARTED, COMPLETED
+                task_match = re.search(r'TASK_(QUEUED|RECEIVED|STARTED|COMPLETED)\s+([^:]+):\s*\[(.+)\]', message)
                 if task_match:
-                    task_action = task_match.group(1).lower().capitalize()  # Queued, Started, Completed
+                    task_action = task_match.group(1).lower().capitalize()  # Queued, Received, Started, Completed
                     case_id = task_match.group(2).strip()
                     properties_text = task_match.group(3)
                     # Extract taskType from properties
@@ -737,7 +738,7 @@ def export_ordermanagement_sequences_csv(run_id: str) -> Path:
             })
             continue
         # Track task events to infer case ids for subsequent sends
-        t = re.match(r"\s*([^:]+):\s*(Queued|Started|Completed) Task(?: \(([^)]+)\))?", activity)
+        t = re.match(r"\s*([^:]+):\s*(Queued|Received|Started|Completed) Task(?: \(([^)]+)\))?", activity)
         if t:
             agent = t.group(1).strip()
             phase = t.group(2)
