@@ -81,18 +81,21 @@ def mk_deferred(
 
 
 def _extract_enactment_id(msg) -> str:
-    """Extract case ID from message for process mining."""
-    # Handle both attribute and dictionary access
+    """Extract case/enactment ID from a BSPL message.
+
+    Priority:
+    - id: primary business key for most protocols
+    - r_id: request/audit key (fallback for audit-style flows)
+    """
     try:
-        # First, try BSPL message dictionary access (most common case)
         if hasattr(msg, '__getitem__'):
-            try:
-                value = msg['id']
-                if value is not None:
-                    return str(value)
-            except (KeyError, TypeError):
-                pass
-                
+            for k in ('id', 'r_id'):
+                try:
+                    value = msg[k]
+                    if value is not None:
+                        return str(value)
+                except (KeyError, TypeError):
+                    continue
     except Exception as e:
         log.debug(f"Error extracting enactment ID: {e}")
 
