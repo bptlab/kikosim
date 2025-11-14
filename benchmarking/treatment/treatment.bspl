@@ -1,0 +1,10 @@
+Treatment {
+  roles Patient, Doctor, Pharmacist
+  parameters out id key, out symptom, out done
+  private rx
+
+  Patient -> Doctor: complaint    [out id key, out symptom]
+  Doctor  -> Patient: reassurance  [in id key, in symptom, nil rx, out done]
+  Doctor  -> Pharmacist: prescription [in id key, in symptom, nil done, out rx]
+  Pharmacist -> Patient: filledRx     [in id key, in rx, out done]
+}
