@@ -1,0 +1,12 @@
+PolicyManagement {
+  roles Insurer, Subscriber, Auditor
+  parameters out r_id key, out id key, out premium, out date, out amount, out info
+  private agreed
+
+  Insurer   -> Subscriber: offer   [out id key, out premium]
+  Subscriber -> Insurer:   accept   [in  id key, in premium, out agreed, nil date]
+  Subscriber -> Insurer:   reject   [in  id key, in premium, nil agreed, out date]
+  Insurer   -> Subscriber: create  [in  id key, in premium, in agreed, out date]
+  Auditor   -> Insurer:   request  [out r_id key, out amount]
+  Insurer   -> Auditor:   report   [in  r_id key, in id, in amount, out premium, out info]
+}
