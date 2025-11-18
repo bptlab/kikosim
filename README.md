@@ -24,9 +24,11 @@ Get the simulation framework running in 3 simple steps:
 python3 -m venv venv
 source venv/bin/activate
 
-# Install backend dependencies and core libraries
+# install dependencies
 pip install -r backend/requirements.txt
 cd ra_transformer_lib_src && pip install -e . && cd ..
+# clone bspl in the ra_transformer_lib_src directory and install its dependencies
+cd ra_transformer_lib_src && git clone https://gitlab.com/masr/bspl.git && cd ..
 cd ra_transformer_lib_src/bspl && pip install -e . && cd ../..
 
 # Verify BSPL installation
