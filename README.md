@@ -19,6 +19,11 @@ Get the simulation framework running in 3 simple steps:
 
 ### 1. Setup Dependencies
 
+install redis if you don't have it - on MacOs: 
+```bash
+brew install redis
+```
+
 ```bash
 # Create and activate virtual environment
 python3 -m venv venv
