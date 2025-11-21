@@ -69,7 +69,7 @@ export default function ConfigurationModal({
     }
   }, [config, isOpen]);
 
-  const businessAgents = Object.keys(agentPools);
+  const orchestratorAgents = Object.keys(agentPools);
 
   // Time conversion utilities
   const convertToDays = (value, unit) => {
@@ -206,17 +206,17 @@ export default function ConfigurationModal({
   };
 
   // Helper functions for task grouping and smart defaults
-  const getTasksByBusinessAgent = () => {
+  const getTasksByOrchestratorAgent = () => {
     const grouped = {};
 
-    // Group tasks by their business agent
+    // Group tasks by their orchestrator agent
     Object.keys(taskSettings).forEach((taskName) => {
-      const businessAgent = taskToAgentMapping[taskName];
-      if (businessAgent) {
-        if (!grouped[businessAgent]) {
-          grouped[businessAgent] = [];
+      const orchestratorAgent = taskToAgentMapping[taskName];
+      if (orchestratorAgent) {
+        if (!grouped[orchestratorAgent]) {
+          grouped[orchestratorAgent] = [];
         }
-        grouped[businessAgent].push(taskName);
+        grouped[orchestratorAgent].push(taskName);
       } else {
         // Fallback: put ungrouped tasks under "Unknown"
         if (!grouped["Unknown"]) {
@@ -226,7 +226,7 @@ export default function ConfigurationModal({
       }
     });
 
-    // Convert to array of [businessAgent, tasks] pairs, sorted
+    // Convert to array of [orchestratorAgent, tasks] pairs, sorted
     return Object.entries(grouped).sort(([a], [b]) => {
       if (a === "Unknown") return 1; // Put "Unknown" last
       if (b === "Unknown") return -1;
@@ -235,11 +235,11 @@ export default function ConfigurationModal({
   };
 
   const getRecommendedAgent = (taskName) => {
-    const businessAgent = taskToAgentMapping[taskName];
-    if (!businessAgent) return null;
+    const orchestratorAgent = taskToAgentMapping[taskName];
+    if (!orchestratorAgent) return null;
 
-    // Default to the primary resource agent for this business agent
-    const resourceAgentCounts = agentPools[businessAgent] || {};
+    // Default to the primary resource agent for this orchestrator agent
+    const resourceAgentCounts = agentPools[orchestratorAgent] || {};
     const agentTypes = Object.keys(resourceAgentCounts);
 
     if (agentTypes.length > 0) {
@@ -247,15 +247,15 @@ export default function ConfigurationModal({
       const sorted = Object.entries(resourceAgentCounts).sort(
         (a, b) => b[1] - a[1]
       );
-      return sorted[0]?.[0] || `${businessAgent}RA`;
+      return sorted[0]?.[0] || `${orchestratorAgent}RA`;
     }
 
-    return `${businessAgent}RA`; // Fallback to conventional naming
+    return `${orchestratorAgent}RA`; // Fallback to conventional naming
   };
 
   // Convert back to backend format
   const convertToBackendFormat = () => {
-    // Ensure all business agents have at least their main resource agent
+    // Ensure all orchestrator agents have at least their main resource agent
     const backendPools = {};
     Object.keys(agentPools).forEach((principal) => {
       const mainAgentType = `${principal}RA`;
@@ -383,14 +383,14 @@ export default function ConfigurationModal({
             </div>
 
             <div className="space-y-4">
-              {businessAgents.map((principal) => {
+              {orchestratorAgents.map((principal) => {
                 const agentTypes = Object.entries(agentPools[principal] || {});
 
                 return (
                   <div key={principal} className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-medium text-gray-900">
-                        {principal} Business Agent
+                        {principal} Orchestrator Agent
                       </h4>
                       <button
                         onClick={() => {
@@ -609,10 +609,10 @@ export default function ConfigurationModal({
               })}
             </div>
 
-            {businessAgents.length === 0 && (
+            {orchestratorAgents.length === 0 && (
               <div className="text-center py-8">
                 <p className="text-gray-500">
-                  No business agents found in configuration.
+                  No orchestrator agents found in configuration.
                 </p>
               </div>
             )}
@@ -633,11 +633,11 @@ export default function ConfigurationModal({
             </div>
 
             <div className="space-y-4">
-              {getTasksByBusinessAgent().map(([businessAgent, tasks]) => (
-                <div key={businessAgent} className="bg-gray-50 rounded-lg p-4">
+              {getTasksByOrchestratorAgent().map(([orchestratorAgent, tasks]) => (
+                <div key={orchestratorAgent} className="bg-gray-50 rounded-lg p-4">
                   <h4 className="font-medium text-gray-900 mb-3 flex items-center">
                     <span className="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
-                    {businessAgent} Business Agent Tasks
+                    {orchestratorAgent} Orchestrator Agent Tasks
                   </h4>
 
                   <div className="space-y-3">
@@ -646,19 +646,19 @@ export default function ConfigurationModal({
                         taskName
                       ] || ["", 1];
                       const recommendedAgent = getRecommendedAgent(taskName);
-                      const taskBusinessAgent = taskToAgentMapping[taskName];
+                      const taskOrchestratorAgent = taskToAgentMapping[taskName];
 
                       // Simplified cross-assignment check
                       const isCrossAssignment =
                         currentAgent &&
-                        taskBusinessAgent &&
+                        taskOrchestratorAgent &&
                         !Object.keys(
-                          agentPools[taskBusinessAgent] || {}
+                          agentPools[taskOrchestratorAgent] || {}
                         ).includes(currentAgent);
 
                       return (
                         <div
-                          key={`${businessAgent}-${taskIndex}`}
+                          key={`${orchestratorAgent}-${taskIndex}`}
                           className="bg-white rounded border p-3"
                         >
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -669,7 +669,7 @@ export default function ConfigurationModal({
                               {isCrossAssignment && (
                                 <span
                                   className="ml-2 text-xs text-orange-600"
-                                  title="Cross-business-agent assignment"
+                                  title="Cross-orchestrator-agent assignment"
                                 >
                                   ⚠️
                                 </span>
@@ -828,7 +828,7 @@ export default function ConfigurationModal({
               </h4>
               <div className="text-sm text-blue-800">
                 <p>
-                  <strong>Business Agents:</strong> {businessAgents.join(", ")}
+                  <strong>Orchestrator Agents:</strong> {orchestratorAgents.join(", ")}
                 </p>
                 <p>
                   <strong>Resource Agents:</strong>{" "}

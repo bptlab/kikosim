@@ -407,7 +407,7 @@ export default function RunView({ runId, onRunUpdated, updateKey }) {
       }
     });
 
-    const businessAgents = [];
+    const orchestratorAgents = [];
     const resourceAgents = [];
     const timeAgents = [];
 
@@ -418,18 +418,18 @@ export default function RunView({ runId, onRunUpdated, updateKey }) {
 
       // Smart categorization based on log content patterns
       if (businessRatio > 0.1 && agent.startsWith("ra_") === false) {
-        businessAgents.push(agent);
+        orchestratorAgents.push(agent);
       } else if (resourceRatio > 0.1 || agent.startsWith("ra_")) {
         resourceAgents.push(agent);
       } else if (timeRatio > 0.3 || agent.includes("timeservice")) {
         timeAgents.push(agent);
       } else if (!agent.startsWith("ra_") && !agent.includes("timeservice")) {
-        // Default: non-RA, non-TimeService agents are likely business agents
-        businessAgents.push(agent);
+        // Default: non-RA, non-TimeService agents are likely orchestrator agents
+        orchestratorAgents.push(agent);
       }
     });
 
-    return { businessAgents, resourceAgents, timeAgents };
+    return { orchestratorAgents, resourceAgents, timeAgents };
   };
 
   const handleExportBusinessCSV = async () => {
@@ -564,8 +564,8 @@ export default function RunView({ runId, onRunUpdated, updateKey }) {
         break;
       case "business_protocol":
         // Show only business protocol logs using smart detection
-        const { businessAgents: smartBusinessAgents } = getAgentCategories();
-        const isSmartBusinessAgent = smartBusinessAgents.includes(
+        const { orchestratorAgents: smartOrchestratorAgents } = getAgentCategories();
+        const isSmartOrchestratorAgent = smartOrchestratorAgents.includes(
           log.agent.toLowerCase()
         );
         const message = log.message.toLowerCase();
@@ -577,7 +577,7 @@ export default function RunView({ runId, onRunUpdated, updateKey }) {
           message.includes("orderrequest") ||
           message.includes("orderresponse");
         logFilterMatch =
-          isSmartBusinessAgent &&
+          isSmartOrchestratorAgent &&
           isImportantLog &&
           !isTimeManagementLog &&
           !isResourceManagementLog;

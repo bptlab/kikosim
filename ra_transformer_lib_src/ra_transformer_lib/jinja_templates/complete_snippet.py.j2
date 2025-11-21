@@ -14,3 +14,4 @@ async def _ra__execute_pending(msg):
         import traceback
         log.error(f"💥 Task execution traceback: {traceback.format_exc()}")
         # Don't re-raise - log and continue
+    return msg
