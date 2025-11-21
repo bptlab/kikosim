@@ -114,10 +114,10 @@ def allocate_ports_for_run(run_id: str, business_agent_count: int, resource_agen
     total_business_ports = business_agent_count + 1  # +1 for TimeService
     total_resource_ports = resource_agent_count
     
-    # Find available business agent ports (starting from 8000)
+    # Find available orchestrator agent ports (starting from 8000)
     business_base = find_available_port_range(DEFAULT_BUSINESS_PORT_START, total_business_ports)
     if business_base is None:
-        raise RuntimeError(f"Cannot find {total_business_ports} contiguous ports for business agents")
+        raise RuntimeError(f"Cannot find {total_business_ports} contiguous ports for orchestrator agents")
     
     # Find available resource agent ports (starting from 9000, or after business ports)
     resource_start = max(DEFAULT_RESOURCE_PORT_START, business_base + total_business_ports + PORT_SAFETY_BUFFER)
@@ -141,7 +141,7 @@ def allocate_ports_for_run(run_id: str, business_agent_count: int, resource_agen
     run_port_ranges[run_id] = port_allocation
     
     print(f"🔌 Allocated ports for run {run_id}:")
-    print(f"   Business agents: {business_base}-{business_base + total_business_ports - 1}")
+    print(f"   Orchestrator agents: {business_base}-{business_base + total_business_ports - 1}")
     print(f"   Resource agents: {resource_base}-{resource_base + total_resource_ports - 1}")
     
     return port_allocation
@@ -154,7 +154,7 @@ def release_ports_for_run(run_id: str):
     
     allocation = run_port_ranges[run_id]
     
-    # Release business agent ports
+    # Release orchestrator agent ports
     for port in range(allocation["business_base"], allocation["business_base"] + allocation["business_count"]):
         allocated_ports.discard(port)
     
@@ -407,7 +407,7 @@ async def run_simulation_background(run_id: str, max_rounds: int = 200):
                             # Unknown format; ignore gracefully
                             continue
         else:
-            # Default: 1 resource agent per business agent
+            # Default: 1 resource agent per orchestrator agent
             resource_agent_count = business_agent_count
         
         port_allocation = allocate_ports_for_run(run_id, business_agent_count, resource_agent_count)
