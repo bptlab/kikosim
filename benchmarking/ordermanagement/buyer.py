@@ -89,6 +89,7 @@ async def decide_next(oid: str):
     - cancel_req[id,rescind] requires: in id, nil delivery_date, nil outcome
     - confirm[id,payment_ref,delivery_date,outcome] requires: in id, in payment_ref, in delivery_date (sets outcome)
     Policy:
+    - If pre_cancel is set and conditions allow, send cancel_req
     - If both payment_ref and delivery_date are known and outcome is unset, deterministically send confirm.
     - If invoice (price) is known and outcome is unset, choose to pay (70%) or request cancellation (30% if no delivery yet).
     """
@@ -96,6 +97,15 @@ async def decide_next(oid: str):
     # If we've already requested cancellation, stop taking further actions
     if s["cancel_sent"] or s["outcome"]:
         return
+    
+    # Handle pre_cancel flag from initiator (before any delivery)
+    if s.get("pre_cancel") and not s["delivery_date"] and not s["cancel_sent"] and not s["outcome"]:
+        r = cancel_req(id=oid, rescind=f"RESC_{oid}")
+        await send_cancel_req(r)
+        s["cancel_sent"] = True
+        s["pre_cancel"] = False
+        return
+    
     # If both payment and delivery are known and we haven't confirmed yet → confirm
     if s["payment_ref"] and s["delivery_date"] and not s["confirm_sent"] and not s["outcome"]:
         c = confirm(id=oid, payment_ref=s["payment_ref"], delivery_date=s["delivery_date"], outcome="DELIVERED")
@@ -210,17 +220,9 @@ async def initiator():
             s["pre_cancel"] = True
     except Exception as e:
         log.error(f"Buyer initiator pre-cancel flag failed: {e}")
-
-    # Opportunistically execute any pending pre-cancels using RA-deferred send
-    try:
-        for cid, s in list(state.items()):
-            if s.get("pre_cancel") and not s.get("cancel_sent") and not s.get("delivery_date") and not s.get("outcome"):
-                r = cancel_req(id=cid, rescind=f"RESC_{cid}")
-                await send_cancel_req(r)
-                s["cancel_sent"] = True
-                s["pre_cancel"] = False
-    except Exception as e:
-        log.error(f"Buyer initiator pre-cancel dispatch failed: {e}")
+    
+    # Don't immediately send cancel_req here - let decide_next() handle it
+    # This prevents race conditions with concurrent CompleteTask messages from multiple RAs
 
 
 if __name__ == "__main__":
