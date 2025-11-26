@@ -699,7 +699,7 @@ export default function RunView({ runId, onRunUpdated, updateKey }) {
                     }
                     disabled={isRunning}
                     min="1"
-                    max="1000"
+                    max="5000"
                     className="w-20 px-3 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                   />
                   <span className="text-sm text-gray-700">rounds</span>

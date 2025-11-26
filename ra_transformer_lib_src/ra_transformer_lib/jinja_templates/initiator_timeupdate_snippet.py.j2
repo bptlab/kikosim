@@ -67,7 +67,7 @@ async def handle_time_update(msg):
                     else:
                         initiator()
                 else:
-                    probability = 0.3
+                    probability = 0.1
                     if random.random() < probability:
                         log.info(f"🎯 Calling initiator() in round {round_id} (30% chance)")
                         if asyncio.iscoroutinefunction(initiator):
