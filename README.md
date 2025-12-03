@@ -1,38 +1,30 @@
-# KikoSim - Event-Driven Resource-Aware Simulation Framework
+# KikoSim: A Resource-Aware Agent-Based Simulation Framework for Flexible Process Interactions
 
-This repository contains the complete implementation and evaluation materials for my master's thesis on resource-aware simulation of kiko agents.
+This repository contains the complete implementation and evaluation materials for the paper titled "Agent-Based Simulation of Flexible Process Interactions."
 
-## 📖 About This Project
+## 📋 Prerequisites
 
-KikoSim offers event-driven, resource-aware simulations for Kiko agents. The main features are resource allocation, time coordination, and output of minable logs. The agent that is being simulated can also run in production
+- **Python 3.11+** for the backend and transformation library
+- **Node.js 18+** for the React frontend
 
-**Key capabilities:**
-
-- Virtual time coordination enabling fast-forward simulation
-- Resource allocation with configurable capacity and timing
-- Process mining integration with analysis-ready logs
-- Non-intrusive instrumentation preserving business logic
 
 ## 🚀 Quick Start
-
 Get the simulation framework running in 3 simple steps:
 
 ### 1. Setup Dependencies
 
-install redis if you don't have it - on MacOs: 
-```bash
-brew install redis
-```
+Install Redis, if you do not already have it installed, according to your operating system: https://redis.io/docs/latest/operate/oss_and_stack/install/archive/install-redis/
 
 ```bash
 # Create and activate virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
-# install dependencies
+# Install dependencies
 pip install -r backend/requirements.txt
 cd ra_transformer_lib_src && pip install -e . && cd ..
-# clone bspl in the ra_transformer_lib_src directory and install its dependencies
+
+# Clone BSPL in ra_transformer_lib_src directory and install its dependencies
 cd ra_transformer_lib_src && git clone https://gitlab.com/masr/bspl.git && cd ..
 cd ra_transformer_lib_src/bspl && pip install -e . && cd ../..
 
@@ -49,16 +41,15 @@ cd frontend && npm install && cd ..
 # Ensure virtual environment is active
 source venv/bin/activate
 
-# Start the FastAPI backend (auto-starts Redis)
+# Start the FastAPI backend (automatically starts Redis)
 cd backend && python main.py
 ```
 
 **Backend running at:** http://localhost:8080
 
 ### 3. Start Frontend Interface
-
+In a new terminal window or tab, run:
 ```bash
-# In a new terminal
 cd frontend && npm run dev
 ```
 
@@ -66,14 +57,14 @@ cd frontend && npm run dev
 
 ## Getting Started with a First Simulation
 
-Here's a quick first walkthrough:
+Here is a quick first walkthrough:
 
 1. **Make sure both backend and frontend are running** (follow steps above)
-2. **Open the web interface** at http://localhost:5173
-3. **Upload the Alice & Bob protocol**:
+2. **Open the web interface** at http://localhost:5173 **in your web browser**
+3. **Upload the Alice and Bob interaction**:
    - Click "Upload Protocol"
    - Navigate to `benchmarking/alice_asks_bob`
-   - Upload the bspl protocol and the alice and bob agents
+   - Upload the alice_asks_bob.bspl protocol and alice.py and bob.py agents.
 4. **Configure your first simulation**:
    - Set **Simulation Rounds**: `100`
    - Try different **Resource Configurations**:
@@ -85,11 +76,6 @@ Here's a quick first walkthrough:
 
 ---
 
-## 📋 Prerequisites
-
-- **Python 3.11+** for the backend and transformation library
-- **Node.js 18+** for the React frontend
-- **Redis** (automatically started by backend - no manual setup needed)
 
 ## Architecture
 
