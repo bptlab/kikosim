@@ -705,7 +705,7 @@ export default function RunView({ runId, onRunUpdated, updateKey }) {
                   <span className="text-sm text-gray-700">rounds</span>
                 </div>
                 <span className="text-xs text-gray-500">
-                  Number of virtual time rounds to simulate (1-1000 rounds)
+                  Number of virtual time rounds to simulate.
                 </span>
               </div>
 
