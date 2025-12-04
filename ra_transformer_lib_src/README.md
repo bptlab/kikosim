@@ -20,7 +20,7 @@ The library transforms BSPL agents into a **5-step Deferred Resource-Agent patte
 
 ```bash
 # Navigate to the project root
-cd /path/to/your/master-thesis
+cd /path/to/kikosim
 
 # Create and activate virtual environment
 python3 -m venv venv
@@ -378,9 +378,9 @@ This example shows the entire transformation process from input validation throu
 3. Run the test-suite: `pytest ra_transformer_lib_src/tests/ -v`
 4. Follow existing code patterns for new features and keep the README in sync with the codebase.
 
-## 📖 Research Context
+## 📖 About
 
-This library is part of an ongoing master's thesis on BSPL agent patterns. It enables researchers to:
+This library enables developers and researchers to:
 
 - Experiment with resource-management patterns at scale
 - Generate complete multi-agent systems from minimal inputs

@@ -2,8 +2,7 @@ Metadata-Version: 2.4
 Name: ra_transformer
 Version: 0.1.0
 Summary: A library for the Deferred Resource-Agent pattern transformation.
-Author-email: Leonard Kulm <leonard.kulms@proton.me>
-Project-URL: Homepage, https://github.com/leonardkulms/master-thesis
+Project-URL: Homepage, https://github.com/bptlab/kikosim
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent

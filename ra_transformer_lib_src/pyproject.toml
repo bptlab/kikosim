@@ -5,9 +5,6 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ra_transformer"
 version = "0.1.0"
-authors = [
-  { name="Example Author", email="author@example.com" },
-]
 description = "A library for the Deferred Resource-Agent pattern transformation."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -25,5 +22,4 @@ dependencies = [
 packages = ["ra_transformer_lib"]
 
 [project.urls]
-"Homepage" = "https://github.com/pypa/sampleproject"
-"Bug Tracker" = "https://github.com/pypa/sampleproject/issues" 
+"Homepage" = "https://github.com/bptlab/kikosim" 
