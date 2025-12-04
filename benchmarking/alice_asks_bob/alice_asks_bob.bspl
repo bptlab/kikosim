@@ -1,8 +1,0 @@
-AliceAsksBob {
-  roles Alice, Bob
-  parameters out id key, out question, out answer
-
-  Alice → Bob: Ask[out id key, out question]
-  Bob → Alice: Reply[in id key, in question, out answer]
-}
-

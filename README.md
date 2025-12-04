@@ -57,7 +57,10 @@ cd frontend && npm run dev
 
 You can watch a screencast showing how to use KikoSim at: https://youtu.be/HQ9nCgoX1NY
 
-## ⚙️ Baseline Experimental Setup
+## Scenarios
+The /scenarios directory includes three scenarios: order management, policy management, and treatment. For each scenario, a BSPL protocol and agent implementations are provided. Below, we outline the baseline experimental setup and the results of each simulation experiment for the order management scenario, which is used throughout the paper. The policy management and treatment scenarios were inspired by X and Y, respectively.
+
+## ⚙️ Baseline Experimental Setup for the Order Management Scenario
 ### 1. Configuration of Resources
 | Orchestrator | Resource Type | Resource Capacity | Resource Allocation Strategy |
 | :--- | :--- | :--- | :--- |
@@ -67,7 +70,7 @@ You can watch a screencast showing how to use KikoSim at: https://youtu.be/HQ9nC
 | Logistics Provider | Courier | 1 | Round Robin |
 | Logistics Provider | Warehouse Worker | 1 | Round Robin |
 
-### 2. Configuration of Processing Times
+### 2. Configuration of Processing Times for the Order Management Scenario
 | Orchestrator | Resource Type | Activity | Processing Time (minute) |
 | :--- | :--- | :--- | :--- |
 | Buyer | Purchaser | send_order | 5 |
@@ -89,7 +92,7 @@ You can watch a screencast showing how to use KikoSim at: https://youtu.be/HQ9nC
 | Seller | Accountant | send_invoice | N(30, 5) |
 | Seller | Accountant | on_pay | 30 |
 
-## Results
+## Results for the Order Management Scenario
 The statistics computed for each simulation experiment are shown below.
 
 | # Clerks |# Couriers | Avg. CT (hour) | Avg. QT Courier (hour) | Avg. QT Clerk (hour) |
