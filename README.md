@@ -58,7 +58,7 @@ cd frontend && npm run dev
 You can watch a screencast showing how to use KikoSim at: https://youtu.be/HQ9nCgoX1NY
 
 ## Scenarios
-The /scenarios directory includes three scenarios: order management, policy management, and treatment. For each scenario, a BSPL protocol and agent implementations are provided. Below, we outline the baseline experimental setup and the results of each simulation experiment for the order management scenario, which is used throughout the paper. The policy management and treatment scenarios were inspired by X and Y, respectively.
+The /scenarios directory includes three scenarios: order management, policy management, and treatment. For each scenario, a BSPL protocol and agent implementations are provided. Below, we outline the baseline experimental setup and the results of each simulation experiment for the order management scenario, which is used throughout the paper.
 
 ## ⚙️ Baseline Experimental Setup for the Order Management Scenario
 ### 1. Configuration of Resources
