@@ -89,3 +89,17 @@ You can watch a screencast showing how to use KikoSim at: https://youtu.be/HQ9nC
 | Seller | Accountant | send_invoice | N(30, 5) |
 | Seller | Accountant | on_pay | 30 |
 
+## Results
+The statistics computed for each simulation experiment are shown below.
+
+| # Clerks |# Couriers | Avg. CT (hour) | Avg. QT Courier (hour) | Avg. QT Clerk (hour) |
+| :--- | :--- | :--- | :--- | :--- |
+| 1 | 1 | 113.27 | 149.22 | 5.04 |
+| 1 | 2 | 49.54 | 43.96 | 3.06 |
+| 1 | 3 | 34.43 | 15.35 | 5.89 |
+| 1 | 4 | 32.93 | 1.24 | 8.67 |
+| 2 | 1 | 187.37 | 305.83 | 0.87 |
+| 3 | 1 | 220.73 | 298.78 | 0.37 |
+| 4 | 1 | 237.96 | 339.26 | 0.25 |
+
+For each experiment, the /results directory contains raw simulation logs that include all initiated enactments. Additionally, it contains filtered simulation logs that include only completed enactments, which we used for our analysis.
