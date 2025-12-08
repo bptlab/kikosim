@@ -2,6 +2,9 @@
 
 This repository contains the complete implementation and evaluation materials for the paper titled "Agent-Based Simulation of Flexible Process Interactions."
 
+## 🎥 Screencast
+You can watch a screencast showing how to use KikoSim at: https://youtu.be/HQ9nCgoX1NY
+
 ## 📋 Prerequisites
 
 - **Python 3.11+** for the backend and transformation library
@@ -54,8 +57,6 @@ cd frontend && npm run dev
 ```
 
 **Frontend running at:** http://localhost:5173
-
-You can watch a screencast showing how to use KikoSim at: https://youtu.be/HQ9nCgoX1NY
 
 ## Scenarios
 The /scenarios directory includes three scenarios: order management, policy management, and treatment. For each scenario, a BSPL protocol and agent implementations are provided. Below, we outline the baseline experimental setup and the results of each simulation experiment for the order management scenario, which is used throughout the paper.
