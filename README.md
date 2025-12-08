@@ -58,7 +58,7 @@ cd frontend && npm run dev
 
 **Frontend running at:** http://localhost:5173
 
-## Scenarios
+## 🎬 Scenarios
 The /scenarios directory includes three scenarios: order management, policy management, and treatment. For each scenario, a BSPL protocol and agent implementations are provided. Below, we outline the baseline experimental setup and the results of each simulation experiment for the order management scenario, which is used throughout the paper.
 
 ## ⚙️ Baseline Experimental Setup for the Order Management Scenario
@@ -93,7 +93,7 @@ The /scenarios directory includes three scenarios: order management, policy mana
 | Seller | Accountant | send_invoice | N(30, 5) |
 | Seller | Accountant | on_pay | 30 |
 
-## Results for the Order Management Scenario
+## 📊 Results for the Order Management Scenario
 The statistics computed for each simulation experiment are shown below.
 
 | # Clerks |# Couriers | Avg. CT (hour) | Avg. QT Courier (hour) | Avg. QT Clerk (hour) |

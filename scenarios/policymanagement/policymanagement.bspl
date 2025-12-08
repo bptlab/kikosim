@@ -1,4 +1,3 @@
-# Reference: Günay, A., Chopra, A. K., & Singh, M. P. (2019). Supple: Multiagent communication protocols with causal types.
 PolicyManagement {
   roles Insurer, Subscriber, Auditor
   parameters out r_id key, out id key, out premium, out date, out amount, out info
